@@ -90,7 +90,31 @@ function ResultsPage() {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
-    // ... (useEffect for auth remains the same)
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const handleLoginClick = () => {
+        setModalMode('login');
+        setIsModalOpen(true);
+    };
+
+    const handleSignupClick = () => {
+        setModalMode('signup');
+        setIsModalOpen(true);
+    };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+    };
 
     const handleAddToProject = async (title, text) => {
         if (!user) {
