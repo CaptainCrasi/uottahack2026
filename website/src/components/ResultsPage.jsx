@@ -27,7 +27,61 @@ const ResultSlice = ({ title, text }) => (
         }}
     >
         <h3 style={{ margin: '0 0 0.3rem 0', color: '#ececf1', fontSize: '1rem' }}>{title}</h3>
-        <p style={{ margin: 0, color: '#9da3ae', fontSize: '0.9rem' }}>{text}</p>
+        <p style={{ margin: '0 0 0.8rem 0', color: '#9da3ae', fontSize: '0.9rem' }}>{text}</p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+            <button style={{
+                background: 'rgba(4, 141, 123, 0.2)',
+                border: '1px solid rgba(4, 141, 123, 0.5)',
+                color: '#048d7b',
+                padding: '6px 16px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s'
+            }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(4, 141, 123, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(4, 141, 123, 0.2)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    console.log("Analyze clicked for:", title);
+                }}
+            >
+                Analyze
+            </button>
+            <button style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#c5c5d2',
+                padding: '6px 16px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+            }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = '#c5c5d2';
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    console.log("Add to Project clicked for:", title);
+                }}
+            >
+                + Add to Project
+            </button>
+        </div>
     </div>
 );
 

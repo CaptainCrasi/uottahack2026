@@ -13,7 +13,7 @@ const HistorySidebar = ({ isOpen, onClose, historyItems = [] }) => {
             {/* Sidebar Container */}
             <div className={`history-sidebar ${isOpen ? 'open' : ''}`}>
                 <div className="history-header">
-                    <h2 className="history-title">MNI.LOG // PROJECTS</h2>
+                    <h2 className="history-title">MY PROJECTS</h2>
                     <button className="close-btn" onClick={onClose}>&times;</button>
                 </div>
 
@@ -39,10 +39,6 @@ const HistorySidebar = ({ isOpen, onClose, historyItems = [] }) => {
                             ))}
                         </div>
                     )}
-                </div>
-
-                <div className="history-footer">
-                    <p>SYSTEM READY</p>
                 </div>
             </div>
         </>

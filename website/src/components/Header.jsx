@@ -14,11 +14,16 @@ const Header = ({ user, onLoginClick, onSignupClick, onLogoutClick, onHistoryCli
             <div className="header-right">
                 {user ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <button className="btn-secondary" onClick={onHistoryClick} style={{ color: '#048d7b', fontSize: '0.9rem', letterSpacing: '1px' }}>
-                            [ PROJECTS ]
+                        <button className="btn-projects" onClick={onHistoryClick}>
+                            PROJECTS
                         </button>
-                        <span style={{ fontSize: '0.9rem', color: '#c5c5d2' }}>{user.email}</span>
-                        <button className="btn-secondary" onClick={onLogoutClick}>Log out</button>
+                        <div className="user-profile">
+                            <div className="user-avatar">
+                                {user.email?.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="user-name">{user.email?.split('@')[0]}</span>
+                        </div>
+                        <button className="btn-logout" onClick={onLogoutClick}>Log out</button>
                     </div>
                 ) : (
                     <button className="btn-primary btn-large" onClick={onSignupClick}>Get started</button>

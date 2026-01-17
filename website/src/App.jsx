@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from './supabase';
+import { useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import InputArea from './components/InputArea';
 import AuthModal from './components/AuthModal';
-import { supabase } from './supabase';
 import textLogo from './assets/marketsnipe_text_logo.png';
 import './App.css';
 
@@ -13,6 +14,8 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [modalMode, setModalMode] = useState('login');
+
+  const navigate = useNavigate();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
@@ -67,9 +70,9 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    console.log("User sent:", text);
-    // In a real app, this would trigger navigation to the chat view
-    alert("This is a demo of Audience Discovery. Searching for: " + text);
+
+    // Redirect to loading page
+    navigate('/loading');
   };
 
   const openMarketGapTool = () => {
@@ -78,7 +81,7 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    alert("Opening Market Gap Discovery Tool (WOW Feature)!");
+    navigate('/loading');
   };
 
   return (
