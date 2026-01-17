@@ -1,18 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from './supabase';
+import { useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import InputArea from './components/InputArea';
 import AuthModal from './components/AuthModal';
-import { supabase } from './supabase';
 import textLogo from './assets/marketsnipe_text_logo.png';
 import './App.css';
+
+import HistorySidebar from './components/HistorySidebar';
 
 function App() {
   const [user, setUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [modalMode, setModalMode] = useState('login');
+
+  const navigate = useNavigate();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+
+  // Dummy history data
+  const historyData = [
+    { id: 1, query: "Eco-friendly packaging for cosmetics", date: "Today, 10:23 AM", matches: 12, status: "completed" },
+    { id: 2, query: "AI tools for legal document review", date: "Yesterday, 4:45 PM", matches: 8, status: "saved" },
+    { id: 3, query: "Subscription box for pet owners", date: "Jan 15, 2:30 PM", matches: 24, status: "completed" },
+    { id: 4, query: "Vertical farming equipment", date: "Jan 14, 11:15 AM", matches: 0, status: "pending" },
+  ];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -56,9 +70,9 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    console.log("User sent:", text);
-    // In a real app, this would trigger navigation to the chat view
-    alert("This is a demo of Audience Discovery. Searching for: " + text);
+
+    // Redirect to loading page
+    navigate('/loading');
   };
 
   const openMarketGapTool = () => {
@@ -67,7 +81,7 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    alert("Opening Market Gap Discovery Tool (WOW Feature)!");
+    navigate('/loading');
   };
 
   return (
@@ -77,6 +91,7 @@ function App() {
         onLoginClick={handleLoginClick}
         onSignupClick={handleSignupClick}
         onLogoutClick={handleLogout}
+        onHistoryClick={() => setIsHistoryOpen(true)}
       />
 
       <main className="main-content">
@@ -108,6 +123,12 @@ function App() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialMode={modalMode}
+      />
+
+      <HistorySidebar
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        historyItems={historyData}
       />
     </div>
   );
