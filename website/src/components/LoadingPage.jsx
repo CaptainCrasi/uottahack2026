@@ -30,6 +30,7 @@ function LoadingPage() {
     const [generatedPrompt, setGeneratedPrompt] = useState('');
     const navigate = useNavigate();
     const location = useLocation();
+    const projectId = location.state?.projectId;
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
