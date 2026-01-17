@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 // Edge function: builds a Yellowcake-friendly Reddit scrape prompt using Gemini 2.5 Flash
 Deno.serve(async (req) => {
@@ -12,6 +13,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify JWT token
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('No authorization header provided')
+      throw new Error('Authorization required')
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      console.error('Invalid JWT token:', authError?.message)
+      throw new Error('Invalid authentication token')
+    }
+
+    console.log('Authenticated user:', user.id)
     const body = await req.json()
     const product = typeof body?.product === 'string' ? body.product.trim() : ''
     const problem = typeof body?.problem === 'string' ? body.problem.trim() : ''

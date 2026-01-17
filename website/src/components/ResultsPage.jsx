@@ -85,9 +85,22 @@ function ResultsPage() {
 
     const location = useLocation();
     const projectId = location.state?.projectId;
+    const scrapedResults = location.state?.results || [];
+    const sessionLogs = location.state?.logs || [];
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+
+    // Log session logs when component mounts
+    useEffect(() => {
+        if (sessionLogs.length > 0) {
+            console.log('=== LOADING PAGE SESSION LOGS ===');
+            sessionLogs.forEach(log => {
+                console.log(`[${log.timestamp}] [${log.type.toUpperCase()}] ${log.message}`);
+            });
+            console.log('=== END LOADING PAGE LOGS ===');
+        }
+    }, [sessionLogs]);
 
     const handleAddToProject = async (title, text) => {
         if (!user) {
@@ -128,13 +141,25 @@ function ResultsPage() {
         );
     }
 
-    const results = [
-        { id: 1, title: "Market Gap Opportunity #1", text: "Analyzing subreddit discussions reveals a significant demand for automated social media scheduling tools specifically for artists." },
-        { id: 2, title: "Market Gap Opportunity #2", text: "Users in r/smallbusiness are frequently complaining about the complexity of existing CRM solutions for solo entrepreneurs." },
-        { id: 3, title: "Market Gap Opportunity #3", text: "There is a growing trend in r/productivity asking for a distraction-free writing app that integrates directly with WordPress." },
-        { id: 4, title: "Market Gap Opportunity #4", text: "Gamers in r/pcgaming are looking for a unified launcher that is lightweight and open-source, as current options are bloated." },
-        { id: 5, title: "Market Gap Opportunity #5", text: "Review of r/homeautomation suggests a gap for a privacy-focused, offline-first voice assistant for smart home control." },
-    ];
+    // Convert scraped results to display format
+    const results = scrapedResults.length > 0 
+        ? scrapedResults.map((result, index) => {
+            // Extract post link from the result object
+            const postLink = result.post_link || '';
+            return {
+                id: index + 1,
+                title: `Reddit Post #${index + 1}`,
+                text: postLink,
+                url: postLink
+            };
+        })
+        : [
+            { id: 1, title: "Market Gap Opportunity #1", text: "Analyzing subreddit discussions reveals a significant demand for automated social media scheduling tools specifically for artists." },
+            { id: 2, title: "Market Gap Opportunity #2", text: "Users in r/smallbusiness are frequently complaining about the complexity of existing CRM solutions for solo entrepreneurs." },
+            { id: 3, title: "Market Gap Opportunity #3", text: "There is a growing trend in r/productivity asking for a distraction-free writing app that integrates directly with WordPress." },
+            { id: 4, title: "Market Gap Opportunity #4", text: "Gamers in r/pcgaming are looking for a unified launcher that is lightweight and open-source, as current options are bloated." },
+            { id: 5, title: "Market Gap Opportunity #5", text: "Review of r/homeautomation suggests a gap for a privacy-focused, offline-first voice assistant for smart home control." },
+        ];
 
     return (
         /* Container has background and handles overflow logic */
