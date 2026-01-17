@@ -22,7 +22,7 @@ const InputArea = ({ onSend }) => {
             <div className="input-main-container">
                 <textarea
                     rows={1}
-                    placeholder="Ask anything"
+                    placeholder="Describe your product and what problem you're solving..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
