@@ -2,7 +2,7 @@ import React from 'react';
 import logo from '../assets/logo.png';
 import './Header.css';
 
-const Header = ({ user, onLoginClick, onSignupClick, onLogoutClick }) => {
+const Header = ({ user, onLoginClick, onSignupClick, onLogoutClick, onHistoryClick }) => {
     return (
         <header className="app-header">
             <div className="header-left">
@@ -14,6 +14,9 @@ const Header = ({ user, onLoginClick, onSignupClick, onLogoutClick }) => {
             <div className="header-right">
                 {user ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button className="btn-secondary" onClick={onHistoryClick} style={{ color: '#048d7b', fontSize: '0.9rem', letterSpacing: '1px' }}>
+                            [ PROJECTS ]
+                        </button>
                         <span style={{ fontSize: '0.9rem', color: '#c5c5d2' }}>{user.email}</span>
                         <button className="btn-secondary" onClick={onLogoutClick}>Log out</button>
                     </div>
