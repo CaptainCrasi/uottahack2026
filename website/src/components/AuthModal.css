@@ -12,10 +12,11 @@
 }
 
 .auth-modal {
-    background-color: #2c2c2c; /* Assuming a dark theme based on the Header component structure */
+    background-color: #2c2c2c;
+    /* Assuming a dark theme based on the Header component structure */
     color: white;
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: 24px;
     width: 100%;
     max-width: 400px;
     position: relative;

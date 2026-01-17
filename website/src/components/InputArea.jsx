@@ -30,23 +30,19 @@ const InputArea = ({ onSend }) => {
 
                 <div className="input-actions-row">
                     <div className="input-actions-left">
-                        <button className="action-pill">
-                            <span className="icon">📎</span> Attach
-                        </button>
-                        <button className="action-pill">
-                            <span className="icon">🌐</span> Search
-                        </button>
-                        <button className="action-pill">
-                            <span className="icon">🎓</span> Study
-                        </button>
-                        <button className="action-pill">
-                            <span className="icon">🖼️</span> Create image
-                        </button>
+                        {/* Actions removed */}
                     </div>
 
                     <div className="input-actions-right">
                         <button className="action-pill voice-btn" title="Voice Mode">
                             <span className="icon">|||</span> Voice
+                        </button>
+                        <button
+                            className={`send-btn ${!input.trim() ? 'disabled' : ''}`}
+                            onClick={handleSend}
+                            disabled={!input.trim()}
+                        >
+                            ➞
                         </button>
                     </div>
                 </div>

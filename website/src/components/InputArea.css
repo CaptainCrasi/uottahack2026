@@ -79,4 +79,34 @@ textarea {
     align-items: center;
 }
 
-/* Green accents for specific interactions if needed, but keeping it neutral as per screenshot */
+/* Green accents for specific interactions if needed */
+
+.send-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    /* Rounded square */
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    margin-left: 0.5rem;
+    transition: all 0.2s;
+}
+
+.send-btn:hover:not(.disabled) {
+    /* Match the Get Started button hover effect */
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.send-btn.disabled {
+    background-color: var(--bg-dark);
+    color: var(--text-secondary);
+    cursor: default;
+    opacity: 0.5;
+}
