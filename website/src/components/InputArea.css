@@ -1,0 +1,79 @@
+.input-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
+    background-color: var(--bg-dark);
+    /* Should match body bg to look seamless */
+    position: relative;
+}
+
+.input-box {
+    background-color: var(--input-bg);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    transition: border-color 0.2s;
+    position: relative;
+}
+
+.input-box:focus-within {
+    border-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+}
+
+textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 1rem;
+    color: white;
+    resize: none;
+    max-height: 200px;
+    outline: none;
+    line-height: 1.5;
+    padding: 0;
+    margin: 0;
+}
+
+.send-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.send-btn:hover:not(:disabled) {
+    background-color: var(--bg-darker);
+    color: var(--text-main);
+}
+
+.send-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* Green accent for active send button */
+.send-btn:not(:disabled) {
+    color: var(--primary-gradient-end);
+    background-color: rgba(4, 141, 123, 0.1);
+}
+
+.disclaimer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.75rem;
+    opacity: 0.7;
+}

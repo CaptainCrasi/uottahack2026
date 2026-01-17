@@ -1,0 +1,32 @@
+.app-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-dark);
+}
+
+.main-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 0px;
+  /* Space for input area if fixed, but we are using flex */
+  display: flex;
+  flex-direction: column;
+  /* styling specific for scrollbar spacing */
+}
+
+.input-area-wrapper {
+  background-color: var(--bg-dark);
+  /* Ensure it covers messages when scrolling */
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  /* Subtle separator */
+  flex-shrink: 0;
+}
