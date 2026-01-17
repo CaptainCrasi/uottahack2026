@@ -35,41 +35,24 @@ function LoadingPage() {
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
     useEffect(() => {
-        const generatePrompt = async () => {
-            const inputText = location.state?.inputText;
-            
-            if (!inputText) {
-                navigate('/');
-                return;
-            }
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
 
-            try {
-                setStatusMessage('Generating Reddit scrape prompt...');
-                
-                const { data, error } = await supabase.functions.invoke('generate-keywords', {
-                    body: { input: inputText }
-                });
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
 
-                if (error) throw error;
+        // Simulate AI search delay then redirect
+        const timer = setTimeout(() => {
+            navigate('/results', { state: { projectId } });
+        }, 3000); // 3 seconds delay
 
-                if (data && data.prompt) {
-                    setGeneratedPrompt(data.prompt);
-                    setStatusMessage('Searching the web with YellowCake...');
-                    
-                    // Wait a bit before redirecting to results
-                    setTimeout(() => {
-                        navigate('/results', { state: { prompt: data.prompt, inputText } });
-                    }, 2000);
-                } else {
-                    setStatusMessage('Error: No prompt generated');
-                    setTimeout(() => navigate('/'), 3000);
-                }
-            } catch (err) {
-                console.error('Error generating keywords:', err);
-                setStatusMessage('Error: ' + err.message);
-                setTimeout(() => navigate('/'), 3000);
-            }
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(timer);
         };
+    }, [navigate, projectId]);
 
         generatePrompt();
     }, [navigate, location.state]);

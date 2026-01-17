@@ -13,6 +13,7 @@ import HistorySidebar from './components/HistorySidebar';
 function App() {
   const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal, setModalMode } = useAuth();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('login');
 
   const navigate = useNavigate();
 
@@ -48,6 +49,36 @@ function App() {
     }
   };
 
+      if (projectsError) throw projectsError;
+      setProjects(projectsData || []);
+
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('saved_comments')
+        .select('*');
+
+      if (commentsError) throw commentsError;
+      setSavedComments(commentsData || []);
+
+  // Fetch projects when user changes
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+    } else {
+      setProjects([]);
+      setSavedComments([]);
+    }
+  }, [user]);
+
+  const handleLoginClick = () => {
+    setModalMode('login');
+    setIsModalOpen(true);
+  };
+
+  const handleSignupClick = () => {
+    setModalMode('signup');
+    setIsModalOpen(true);
+  };
+
   // Fetch projects when user changes
   useEffect(() => {
     if (user) {
@@ -79,13 +110,36 @@ function App() {
     navigate('/loading', { state: { inputText: text } });
   };
 
-  const openMarketGapTool = () => {
+  const openMarketGapTool = async () => {
     if (!user) {
       setModalMode('signup');
       setIsModalOpen(true);
       return;
     }
-    navigate('/loading');
+
+    try {
+      const { data, error } = await supabase.from('projects').insert([
+        {
+          user_id: user.id,
+          query: "Market Gap Discovery",
+          status: 'completed',
+          matches_count: Math.floor(Math.random() * 20)
+        }
+      ]).select();
+
+      if (error) throw error;
+
+      const newProjectId = data[0]?.id;
+
+      // Refresh projects list locally
+      fetchProjects();
+
+      navigate('/loading', { state: { projectId: newProjectId } });
+
+    } catch (error) {
+      console.error('Error starting market gap tool:', error);
+      navigate('/loading');
+    }
   };
 
   return (

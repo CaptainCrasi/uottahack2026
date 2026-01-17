@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Header from './Header';
 import AuthModal from './AuthModal';
+import HistorySidebar from './HistorySidebar';
 import { supabase } from '../supabase';
-// import textLogo from '../assets/marketsnipe_text_logo.png'; // Not used in this version
+import { useLocation } from 'react-router-dom';
 import '../App.css';
 import { useAuth } from '../contexts/AuthContext';
-
-import { useNavigate, useLocation } from 'react-router-dom';
 
 const ResultSlice = ({ title, text, onAdd }) => (
     <div style={{
@@ -81,7 +80,14 @@ const ResultSlice = ({ title, text, onAdd }) => (
 );
 
 function ResultsPage() {
-    const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal, setModalMode } = useAuth();
+    const [user, setUser] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [modalMode, setModalMode] = useState('login');
+
+    // History State
+    const [projects, setProjects] = useState([]);
+    const [savedComments, setSavedComments] = useState([]);
 
     const location = useLocation();
     const projectId = location.state?.projectId;
@@ -89,6 +95,63 @@ function ResultsPage() {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
+    // Fetch projects from Supabase (Duplicated from App.jsx)
+    const fetchProjects = async () => {
+        if (!user) return;
+        try {
+            const { data: projectsData, error: projectsError } = await supabase
+                .from('projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (projectsError) throw projectsError;
+            setProjects(projectsData || []);
+
+            const { data: commentsData, error: commentsError } = await supabase
+                .from('saved_comments')
+                .select('*');
+
+            if (commentsError) throw commentsError;
+            setSavedComments(commentsData || []);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Fetch when user changes
+    useEffect(() => {
+        if (user) {
+            fetchProjects();
+        } else {
+            setProjects([]);
+            setSavedComments([]);
+        }
+    }, [user]);
+
+    const handleLoginClick = () => {
+        setModalMode('login');
+        setIsModalOpen(true);
+    };
+
+    const handleSignupClick = () => {
+        setModalMode('signup');
+        setIsModalOpen(true);
+    };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
     const handleAddToProject = async (title, text) => {
         if (!user) {
             setModalMode('signup');
@@ -112,6 +175,41 @@ function ResultsPage() {
             ]);
 
             if (error) throw error;
+            alert(`Saved "${title}" to your project!`);
+        } catch (error) {
+            console.error('Error saving comment:', error);
+            alert("Failed to save to project.");
+        }
+    };
+
+    const handleAddToProject = async (title, text) => {
+        if (!user) {
+            setModalMode('signup');
+            setIsModalOpen(true);
+            return;
+        }
+
+        if (!projectId) {
+            alert("No active project found. Please start a search first.");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('saved_comments').insert([
+                {
+                    user_id: user.id,
+                    project_id: projectId,
+                    comment_text: text,
+                    source_url: 'Reddit',
+                    author: 'Unknown'
+                }
+            ]);
+
+            if (error) throw error;
+
+            // Refresh local list immediately
+            fetchProjects();
+
             alert(`Saved "${title}" to your project!`);
         } catch (error) {
             console.error('Error saving comment:', error);
@@ -147,6 +245,7 @@ function ResultsPage() {
                     onLoginClick={handleLoginClick}
                     onSignupClick={handleSignupClick}
                     onLogoutClick={handleLogout}
+                    onHistoryClick={() => setIsHistoryOpen(true)}
                 />
             </div>
 
@@ -190,6 +289,13 @@ function ResultsPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 initialMode={modalMode}
+            />
+
+            <HistorySidebar
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+                historyItems={projects}
+                savedComments={savedComments}
             />
         </div>
     );
