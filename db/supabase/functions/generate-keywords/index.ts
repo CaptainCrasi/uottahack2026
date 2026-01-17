@@ -31,23 +31,15 @@ Deno.serve(async (req) => {
     const context = input || `Product: ${product || 'N/A'} | Problem solved: ${problem || 'N/A'}`
     console.log('Building prompt for context:', context.substring(0, 80) + '...')
 
-    const systemPrompt = `
-  You write one single instruction for a Reddit scraping agent. Use the startup context below.
+    const systemPrompt = `Create a Reddit scraper instruction based on this product:
+${context}
 
-  Hard requirements:
-  - Output exactly one sentence, 35-70 words.
-  - Must start with: Return exactly 10 items. Output each as {post_link}.
-  - Must contain the phrase: Only include posts where the author describes a problem with ...
-  - Must list at least 3 concrete pain cues and 3 relevant brands/workflows from the context (or obvious adjacent ones if missing).
-  - Do NOT include the words "search" or "reddit". No markdown, no JSON, no quotes around the line.
-  - If context is thin, infer common pain points and brands for the space.
+Generate ONE sentence following this structure:
+Return exactly 10 items. Output each as {post_link}. Only include posts where the author describes a problem with [BRANDS/TOOLS] such as [PAIN_POINT_1], [PAIN_POINT_2], [PAIN_POINT_3], especially [FRUSTRATION] while [USER_GOAL].
 
-  Template to follow (adapt the pain cues and brands):
-  Return exactly 10 items. Output each as {post_link}. Only include posts where the author describes a problem with <brands/workflows> such as <cue1>, <cue2>, <cue3>, especially when <cue4> while doing <workflow/goal>.
+Example: Return exactly 10 items. Output each as {post_link}. Only include posts where the author describes a problem with Stripe/PayPal/Square such as frozen payouts, surprise reserves, or delayed settlements, especially when dealing with high-risk transactions while running an online store.
 
-  Startup context to adapt:
-  ${context}
-  `
+Output only the sentence, no explanation.`
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
     console.log('Calling Gemini 2.5 Flash...')
@@ -58,9 +50,10 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         contents: [{ parts: [{ text: systemPrompt }] }],
         generationConfig: {
-          temperature: 0.25,
-          maxOutputTokens: 200,
-          topP: 0.9,
+          temperature: 0.4,
+          maxOutputTokens: 8192,
+          topP: 0.95,
+          topK: 40,
         },
       }),
     })
@@ -72,14 +65,39 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json()
-    let promptText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    console.log('Full Gemini response:', JSON.stringify(data, null, 2))
+    
+    const candidate = data.candidates?.[0]
+    if (!candidate) {
+      console.error('No candidates in Gemini response:', JSON.stringify(data))
+      throw new Error('No candidates returned from Gemini')
+    }
+
+    const finishReason = candidate.finishReason
+    console.log('Finish reason:', finishReason)
+    
+    if (finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+      console.error('Content blocked by safety filters:', finishReason)
+      throw new Error(`Content generation blocked: ${finishReason}`)
+    }
+
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn('Response was truncated due to token limit')
+      throw new Error('Response truncated. Try a shorter input or contact support.')
+    }
+
+    let promptText = candidate.content?.parts?.[0]?.text?.trim()
     if (!promptText) {
-      console.error('No text in Gemini response:', JSON.stringify(data))
+      console.error('No text in candidate:', JSON.stringify(candidate))
       throw new Error('No response content from Gemini')
     }
 
+    console.log('Raw Gemini output before cleaning:', promptText)
+    console.log('Output length:', promptText.length)
+    
     promptText = promptText.replace(/```[a-z]*\n?|\n?```/g, '').trim()
-    console.log('Generated prompt snippet:', promptText.substring(0, 120))
+    console.log('Final cleaned prompt:', promptText)
+    console.log('Final length:', promptText.length)
 
     return new Response(JSON.stringify({ prompt: promptText }), {
       headers: {

@@ -133,28 +133,9 @@ function App() {
             )}
             
             {!loading && generatedPrompt && (
-              <div style={{ marginTop: '20px', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left', position: 'relative' }}>
+              <div style={{ marginTop: '20px', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left' }}>
                 <h3 style={{ marginTop: 0, color: '#fff' }}>Reddit Scrape Prompt:</h3>
-                <p style={{ color: '#e5e5f0', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: '8px' }}>
-                  {generatedPrompt}
-                </p>
-                <button
-                  onClick={() => navigator.clipboard?.writeText(generatedPrompt)}
-                  style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    background: '#10a37f',
-                    border: 'none',
-                    color: '#fff',
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  Copy
-                </button>
+                <p style={{ color: '#e5e5f0', lineHeight: 1.6 }}>{generatedPrompt}</p>
               </div>
             )}
         </div>
