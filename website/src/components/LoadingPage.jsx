@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from './Header';
 import AuthModal from './AuthModal';
 import { supabase } from '../supabase';
@@ -27,6 +26,8 @@ function LoadingPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('login');
     const navigate = useNavigate();
+    const location = useLocation();
+    const projectId = location.state?.projectId;
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
@@ -42,14 +43,14 @@ function LoadingPage() {
 
         // Simulate AI search delay then redirect
         const timer = setTimeout(() => {
-            navigate('/results');
+            navigate('/results', { state: { projectId } });
         }, 3000); // 3 seconds delay
 
         return () => {
             subscription.unsubscribe();
             clearTimeout(timer);
         };
-    }, [navigate]);
+    }, [navigate, projectId]);
 
     const handleLoginClick = () => {
         setModalMode('login');
