@@ -5,7 +5,6 @@ import AuthModal from './AuthModal';
 import { supabase } from '../supabase';
 import textLogo from '../assets/marketsnipe_text_logo.png';
 import '../App.css';
-import { useAuth } from '../contexts/AuthContext';
 
 const Spinner = ({ message }) => (
     <div className="spinner-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
@@ -24,7 +23,9 @@ const Spinner = ({ message }) => (
 );
 
 function LoadingPage() {
-    const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal } = useAuth();
+    const [user, setUser] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState('login');
     const [statusMessage, setStatusMessage] = useState('Generating Reddit scrape prompt...');
     const [generatedPrompt, setGeneratedPrompt] = useState('');
     const navigate = useNavigate();
@@ -38,6 +39,25 @@ function LoadingPage() {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
         });
+<<<<<<< HEAD
+=======
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        const generatePrompt = async () => {
+            const inputText = location.state?.inputText;
+            
+            if (!inputText) {
+                navigate('/');
+                return;
+            }
+>>>>>>> parent of e57ac52 (login revamp)
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
@@ -56,6 +76,20 @@ function LoadingPage() {
 
         generatePrompt();
     }, [navigate, location.state]);
+
+    const handleLoginClick = () => {
+        setModalMode('login');
+        setIsModalOpen(true);
+    };
+
+    const handleSignupClick = () => {
+        setModalMode('signup');
+        setIsModalOpen(true);
+    };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+    };
 
     // We keep the env check for consistency
     if (!supabaseUrl || !supabaseKey) {
@@ -104,7 +138,7 @@ function LoadingPage() {
 
             <AuthModal
                 isOpen={isModalOpen}
-                onClose={closeModal}
+                onClose={() => setIsModalOpen(false)}
                 initialMode={modalMode}
             />
         </div>

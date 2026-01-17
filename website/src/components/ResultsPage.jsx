@@ -5,7 +5,6 @@ import HistorySidebar from './HistorySidebar';
 import { supabase } from '../supabase';
 import { useLocation } from 'react-router-dom';
 import '../App.css';
-import { useAuth } from '../contexts/AuthContext';
 
 const ResultSlice = ({ title, text, onAdd }) => (
     <div style={{
@@ -82,12 +81,16 @@ const ResultSlice = ({ title, text, onAdd }) => (
 function ResultsPage() {
     const [user, setUser] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+<<<<<<< HEAD
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [modalMode, setModalMode] = useState('login');
 
     // History State
     const [projects, setProjects] = useState([]);
     const [savedComments, setSavedComments] = useState([]);
+=======
+    const [modalMode, setModalMode] = useState('login');
+>>>>>>> parent of e57ac52 (login revamp)
 
     const location = useLocation();
     const projectId = location.state?.projectId;
@@ -95,6 +98,7 @@ function ResultsPage() {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
+<<<<<<< HEAD
     // Fetch projects from Supabase (Duplicated from App.jsx)
     const fetchProjects = async () => {
         if (!user) return;
@@ -118,6 +122,8 @@ function ResultsPage() {
         }
     };
 
+=======
+>>>>>>> parent of e57ac52 (login revamp)
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
@@ -130,6 +136,7 @@ function ResultsPage() {
         return () => subscription.unsubscribe();
     }, []);
 
+<<<<<<< HEAD
     // Fetch when user changes
     useEffect(() => {
         if (user) {
@@ -140,6 +147,8 @@ function ResultsPage() {
         }
     }, [user]);
 
+=======
+>>>>>>> parent of e57ac52 (login revamp)
     const handleLoginClick = () => {
         setModalMode('login');
         setIsModalOpen(true);
@@ -152,9 +161,15 @@ function ResultsPage() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+<<<<<<< HEAD
+=======
+    };
+
+>>>>>>> parent of e57ac52 (login revamp)
     const handleAddToProject = async (title, text) => {
         if (!user) {
             setModalMode('signup');
+            setIsModalOpen(true);
             return;
         }
 
@@ -287,7 +302,7 @@ function ResultsPage() {
 
             <AuthModal
                 isOpen={isModalOpen}
-                onClose={closeModal}
+                onClose={() => setIsModalOpen(false)}
                 initialMode={modalMode}
             />
 
