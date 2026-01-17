@@ -17,16 +17,37 @@ function App() {
 
   const navigate = useNavigate();
 
+  // State for projects
+  const [projects, setProjects] = useState([]);
+  const [savedComments, setSavedComments] = useState([]);
+
+  // Supabase keys
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
-  // Dummy history data
-  const historyData = [
-    { id: 1, query: "Eco-friendly packaging for cosmetics", date: "Today, 10:23 AM", matches: 12, status: "completed" },
-    { id: 2, query: "AI tools for legal document review", date: "Yesterday, 4:45 PM", matches: 8, status: "saved" },
-    { id: 3, query: "Subscription box for pet owners", date: "Jan 15, 2:30 PM", matches: 24, status: "completed" },
-    { id: 4, query: "Vertical farming equipment", date: "Jan 14, 11:15 AM", matches: 0, status: "pending" },
-  ];
+  // Fetch projects from Supabase
+  const fetchProjects = async () => {
+    if (!user) return;
+    try {
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectsError) throw projectsError;
+      setProjects(projectsData || []);
+
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('saved_comments')
+        .select('*');
+
+      if (commentsError) throw commentsError;
+      setSavedComments(commentsData || []);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -39,6 +60,16 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch projects when user changes
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+    } else {
+      setProjects([]);
+      setSavedComments([]);
+    }
+  }, [user]);
 
   const handleLoginClick = () => {
     setModalMode('login');
@@ -64,15 +95,37 @@ function App() {
     );
   }
 
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     if (!user) {
       setModalMode('signup');
       setIsModalOpen(true);
       return;
     }
 
-    // Redirect to loading page
-    navigate('/loading');
+    try {
+      const { data, error } = await supabase.from('projects').insert([
+        {
+          user_id: user.id,
+          query: text,
+          status: 'completed',
+          matches_count: Math.floor(Math.random() * 20) // Random for demo
+        }
+      ]).select();
+
+      if (error) throw error;
+
+      const newProjectId = data[0]?.id;
+
+      // Refresh projects list locally
+      fetchProjects();
+
+      // Redirect to loading page
+      navigate('/loading', { state: { projectId: newProjectId } });
+
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert("Failed to save project. Check console.");
+    }
   };
 
   const openMarketGapTool = () => {
@@ -128,7 +181,8 @@ function App() {
       <HistorySidebar
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
-        historyItems={historyData}
+        historyItems={projects}
+        savedComments={savedComments}
       />
     </div>
   );
