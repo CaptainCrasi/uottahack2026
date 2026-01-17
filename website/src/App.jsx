@@ -7,7 +7,11 @@ function App() {
   const handleSend = (text) => {
     console.log("User sent:", text);
     // In a real app, this would trigger navigation to the chat view
-    alert("This is a demo of the Guest UI. Sending: " + text);
+    alert("This is a demo of Audience Discovery. Searching for: " + text);
+  };
+
+  const openMarketGapTool = () => {
+    alert("Opening Market Gap Discovery Tool (WOW Feature)!");
   };
 
   return (
@@ -15,15 +19,23 @@ function App() {
       <Header />
 
       <main className="main-content">
-        <h1 className="hero-text">What can I help with?</h1>
+        <h1 className="hero-text">Audience Discovery</h1>
 
         <div className="input-centering-container">
           <InputArea onSend={handleSend} />
         </div>
+
+        <div className="feature-promotion">
+          <button className="wow-feature-btn" onClick={openMarketGapTool}>
+            ✨ Try Market Gap Discovery Tool
+          </button>
+        </div>
       </main>
 
       <footer className="footer-disclaimer">
-        By messaging ChatGPT, an AI chatbot, you agree to our <a href="#">Terms</a> and have read our <a href="#">Privacy Policy</a>. See <a href="#">Cookie Preferences</a>.
+        Powered by Yellowcake Reddit Scanning Technology.
+        <br />
+        By matching, you agree to our <a href="#">Terms</a>.
       </footer>
     </div>
   );

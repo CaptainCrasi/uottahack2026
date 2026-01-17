@@ -1,4 +1,4 @@
-# Project Overview
+# MarketSnipe Project Overview
 
 ## Core Mission
 This web application allows **Small Businesses** to identify and connect with their exact target audience. By leveraging **Yellowcake** to scan Reddit, the platform finds users matching specific interest criteria based on real-world conversations and needs.
