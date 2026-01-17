@@ -10,6 +10,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('login');
+  
+  const [loading, setLoading] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
@@ -50,15 +54,36 @@ function App() {
     );
   }
 
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     if (!user) {
       setModalMode('signup');
       setIsModalOpen(true);
       return;
     }
-    console.log("User sent:", text);
-    // In a real app, this would trigger navigation to the chat view
-    alert("This is a demo of Audience Discovery. Searching for: " + text);
+    
+    setLoading(true);
+    setStatusMessage('Generating Reddit scrape prompt...');
+    setGeneratedPrompt(''); // Reset prompt
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-keywords', {
+        body: { input: text }
+      });
+
+      if (error) throw error;
+
+      if (data && data.prompt) {
+        setGeneratedPrompt(data.prompt);
+        setStatusMessage('Prompt generated successfully!');
+      } else {
+        setStatusMessage('No prompt generated.');
+      }
+    } catch (err) {
+      console.error('Error generating keywords:', err);
+      setStatusMessage('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openMarketGapTool = () => {
@@ -89,6 +114,49 @@ function App() {
 
         <div className="input-centering-container">
           <InputArea onSend={handleSend} />
+        </div>
+
+        {/* Status and Results Display */}
+        <div style={{ maxWidth: '800px', margin: '20px auto', textAlign: 'center', color: '#c5c5d2' }}>
+            {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ fontSize: '1.2rem' }}>✨ {statusMessage}</div>
+                    {/* Simple loader */}
+                    <div style={{ width: '20px', height: '20px', border: '2px solid #565869', borderTopColor: '#10a37f', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                </div>
+            )}
+
+            {!loading && !generatedPrompt && statusMessage && (
+                <div style={{ marginTop: '20px', color: statusMessage.startsWith('Error') ? '#ff4a4a' : '#c5c5d2' }}>
+                    {statusMessage}
+                </div>
+            )}
+            
+            {!loading && generatedPrompt && (
+              <div style={{ marginTop: '20px', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left', position: 'relative' }}>
+                <h3 style={{ marginTop: 0, color: '#fff' }}>Reddit Scrape Prompt:</h3>
+                <p style={{ color: '#e5e5f0', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: '8px' }}>
+                  {generatedPrompt}
+                </p>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(generatedPrompt)}
+                  style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: '#10a37f',
+                    border: 'none',
+                    color: '#fff',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+            )}
         </div>
 
         <div className="feature-promotion">

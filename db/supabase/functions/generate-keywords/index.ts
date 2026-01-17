@@ -1,66 +1,68 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
+// Edge function: builds a Yellowcake-friendly Reddit scrape prompt using Gemini 2.5 Flash
 Deno.serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    } })
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      },
+    })
   }
 
   try {
-    const { input } = await req.json()
-    
-    if (!input) {
+    const body = await req.json()
+    const product = typeof body?.product === 'string' ? body.product.trim() : ''
+    const problem = typeof body?.problem === 'string' ? body.problem.trim() : ''
+    const input = typeof body?.input === 'string' ? body.input.trim() : ''
+
+    if (!product && !problem && !input) {
       console.error('Missing input in request body')
-      throw new Error('Missing input in request body')
+      throw new Error('Provide either product/problem fields or a single input string.')
     }
 
     const apiKey = Deno.env.get('GEMINI_API_KEY')
     if (!apiKey) {
       console.error('GEMINI_API_KEY environment variable is not set')
-      throw new Error('GEMINI_API_KEY is not set. Please configure it in Supabase Edge Function secrets.')
+      throw new Error('GEMINI_API_KEY is not set. Configure it in Supabase Edge Function secrets.')
     }
-    
-    console.log('Processing input:', input.substring(0, 50) + '...')
 
-    const prompt = `
-      You are an expert at finding relevant discussions on Reddit for audience discovery.
-      
-      Here is the user's input describing their product and the problem it solves:
-      "${input}"
-      
-      First, analyze the input to understand the core problem and the product.
-      Then, your goal is to find people on Reddit who are currently experiencing this problem.
-      Generate 5 to 6 specific, high-intent keywords or short phrases that these users would use in their post titles or bodies when describing their pain points.
-      
-      Do NOT use generic terms like "help" or "advice" on their own. Use specific terminology related to the problem domain.
-      Think about what someone types when they are frustrated and looking for a specific solution.
-      
-      Output ONLY a raw JSON object (no markdown formatting) with a single key "keywords" containing an array of strings.
-      Example format: { "keywords": ["keyword 1", "keyword 2"] }
-    `
+    const context = input || `Product: ${product || 'N/A'} | Problem solved: ${problem || 'N/A'}`
+    console.log('Building prompt for context:', context.substring(0, 80) + '...')
 
-    // Using Gemini 1.5 Flash with v1beta endpoint (required for this model)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    console.log('Calling Gemini API...');
-    
+    const systemPrompt = `
+  You write one single instruction for a Reddit scraping agent. Use the startup context below.
+
+  Hard requirements:
+  - Output exactly one sentence, 35-70 words.
+  - Must start with: Return exactly 10 items. Output each as {post_link}.
+  - Must contain the phrase: Only include posts where the author describes a problem with ...
+  - Must list at least 3 concrete pain cues and 3 relevant brands/workflows from the context (or obvious adjacent ones if missing).
+  - Do NOT include the words "search" or "reddit". No markdown, no JSON, no quotes around the line.
+  - If context is thin, infer common pain points and brands for the space.
+
+  Template to follow (adapt the pain cues and brands):
+  Return exactly 10 items. Output each as {post_link}. Only include posts where the author describes a problem with <brands/workflows> such as <cue1>, <cue2>, <cue3>, especially when <cue4> while doing <workflow/goal>.
+
+  Startup context to adapt:
+  ${context}
+  `
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+    console.log('Calling Gemini 2.5 Flash...')
+
     const response = await fetch(geminiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
+        contents: [{ parts: [{ text: systemPrompt }] }],
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 500,
-          topP: 0.95
-        }
-      })
+          temperature: 0.25,
+          maxOutputTokens: 200,
+          topP: 0.9,
+        },
+      }),
     })
 
     if (!response.ok) {
@@ -70,43 +72,30 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log('Gemini response received')
-    
-    // Parse the response to extract the JSON
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!text) {
+    let promptText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!promptText) {
       console.error('No text in Gemini response:', JSON.stringify(data))
       throw new Error('No response content from Gemini')
     }
-    
-    console.log('Extracted text from Gemini:', text.substring(0, 100))
-    
-    // clean up markdown code blocks if present
-    text = text.replace(/```json\n?|\n?```/g, '').trim()
-    
-    let result
-    try {
-        result = JSON.parse(text)
-        console.log('Successfully parsed keywords:', result.keywords)
-    } catch (e) {
-        console.error("Failed to parse JSON:", text)
-        console.error("Parse error:", e.message)
-        throw new Error(`Failed to parse JSON response from AI: ${e.message}`)
-    }
 
-    return new Response(JSON.stringify(result), {
-      headers: { 
+    promptText = promptText.replace(/```[a-z]*\n?|\n?```/g, '').trim()
+    console.log('Generated prompt snippet:', promptText.substring(0, 120))
+
+    return new Response(JSON.stringify({ prompt: promptText }), {
+      headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
     })
-
   } catch (error) {
     console.error('Function error:', error.message)
     console.error('Stack trace:', error.stack)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     })
   }
 })
