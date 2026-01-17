@@ -40,7 +40,7 @@ function App() {
 
         <div className="feature-promotion">
           <button className="wow-feature-btn" onClick={openMarketGapTool}>
-            ✨ Try Market Gap Discovery Tool
+            ✨ Find A Gap In The Market
           </button>
         </div>
       </main>

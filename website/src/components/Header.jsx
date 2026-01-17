@@ -49,10 +49,7 @@ const Header = () => {
                         <button className="btn-secondary" onClick={handleLogout}>Log out</button>
                     </div>
                 ) : (
-                    <>
-                        <button className="btn-secondary" onClick={handleLoginClick}>Log in</button>
-                        <button className="btn-primary" onClick={handleSignupClick}>Sign up for free</button>
-                    </>
+                    <button className="btn-primary btn-large" onClick={handleSignupClick}>Get started</button>
                 )}
             </div>
 

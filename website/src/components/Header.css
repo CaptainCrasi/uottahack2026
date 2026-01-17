@@ -58,14 +58,43 @@
     background-color: var(--primary-color);
     border: none;
     color: white;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
+    padding: 0.6rem 1.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
     cursor: pointer;
-    border-radius: 100px;
+    border-radius: 8px;
+    /* Slightly less rounded than pill for a modern app look */
     transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-large {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
 }
 
 .btn-primary:hover {
     filter: brightness(1.1);
     transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+    .app-header {
+        padding: 1rem;
+    }
+
+    .btn-large {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .logo-text {
+        font-size: 1rem;
+        display: none;
+        /* Optional: hide text on very small screens if needed, or just shrink it */
+    }
+
+    .header-left {
+        gap: 0.5rem;
+    }
 }
