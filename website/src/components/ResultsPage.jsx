@@ -86,6 +86,7 @@ function ResultsPage() {
     const location = useLocation();
     const projectId = location.state?.projectId;
     const scrapedResults = location.state?.results || [];
+    const [cachedResults, setCachedResults] = useState(scrapedResults);
     const sessionLogs = location.state?.logs || [];
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -101,6 +102,24 @@ function ResultsPage() {
             console.log('=== END LOADING PAGE LOGS ===');
         }
     }, [sessionLogs]);
+
+    useEffect(() => {
+        if (scrapedResults.length > 0) {
+            setCachedResults(scrapedResults);
+            if (typeof window !== 'undefined') {
+                window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(scrapedResults));
+            }
+        } else if (typeof window !== 'undefined') {
+            const stored = window.sessionStorage.getItem('yellowcake_chunk_cache');
+            if (stored) {
+                try {
+                    setCachedResults(JSON.parse(stored));
+                } catch (err) {
+                    console.error('Failed to parse cached chunk data:', err);
+                }
+            }
+        }
+    }, [scrapedResults]);
 
     const handleAddToProject = async (title, text) => {
         if (!user) {
@@ -142,8 +161,8 @@ function ResultsPage() {
     }
 
     // Convert scraped results to display format
-    const results = scrapedResults.length > 0 
-        ? scrapedResults.map((result, index) => {
+    const results = cachedResults.length > 0 
+        ? cachedResults.map((result, index) => {
             // Extract post link from the result object
             const postLink = result.post_link || '';
             return {

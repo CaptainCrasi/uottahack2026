@@ -27,6 +27,17 @@ function LoadingPage() {
     const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal } = useAuth();
     const [statusMessage, setStatusMessage] = useState('Generating Reddit scrape prompt...');
     const [generatedPrompt, setGeneratedPrompt] = useState('');
+    const [chunkCache, setChunkCache] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = window.sessionStorage.getItem('yellowcake_chunk_cache');
+                return cached ? JSON.parse(cached) : [];
+            } catch (err) {
+                console.error('Failed to parse cached chunks:', err);
+            }
+        }
+        return [];
+    });
     const [logs, setLogs] = useState([]);
     const [hasError, setHasError] = useState(false);
     const navigate = useNavigate();
@@ -52,6 +63,11 @@ function LoadingPage() {
                 setHasError(true);
                 return;
             }
+
+            if (typeof window !== 'undefined') {
+                window.sessionStorage.removeItem('yellowcake_chunk_cache');
+            }
+            setChunkCache([]);
 
             try {
                 // Step 1: Generate the prompt
@@ -181,6 +197,13 @@ function LoadingPage() {
                                     const chunkData = JSON.parse(dataLine.slice(6));
                                     results.push(chunkData);
                                     addLog(`Chunk received: ${JSON.stringify(chunkData)}`, 'success');
+                                    setChunkCache(prev => {
+                                        const updated = [...prev, chunkData];
+                                        if (typeof window !== 'undefined') {
+                                            window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(updated));
+                                        }
+                                        return updated;
+                                    });
                                     setStatusMessage(`Found ${results.length} result${results.length !== 1 ? 's' : ''}...`);
                                 } catch (e) {
                                     addLog(`Failed to parse chunk data: ${e.message}`, 'error');
@@ -220,13 +243,17 @@ function LoadingPage() {
                     console.log(`[${log.timestamp}] [${log.type.toUpperCase()}] ${log.message}`);
                 });
                 console.log('=== END SESSION LOGS ===');
+                const finalResults = results.length > 0 ? results : chunkCache;
+                if (typeof window !== 'undefined' && finalResults.length > 0) {
+                    window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(finalResults));
+                }
                 
                 setTimeout(() => {
                     navigate('/results', { 
                         state: { 
                             prompt: data.prompt, 
                             inputText,
-                            results: results,
+                            results: finalResults,
                             projectId: projectId,
                             logs: logs
                         } 
