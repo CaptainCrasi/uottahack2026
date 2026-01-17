@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import './Header.css';
 
@@ -6,7 +6,9 @@ const Header = ({ user, onLoginClick, onSignupClick, onLogoutClick, onHistoryCli
     return (
         <header className="app-header">
             <div className="header-left">
-                <img src={logo} alt="MarketSnipe Icon" className="app-logo" />
+                <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+                    <img src={logo} alt="MarketSnipe Icon" className="app-logo" />
+                </Link>
             </div>
 
             {/* Center text logo was removed previously */}

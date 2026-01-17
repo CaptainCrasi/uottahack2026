@@ -14,23 +14,40 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [modalMode, setModalMode] = useState('login');
-  
-  const [loading, setLoading] = useState(false);
-  const [generatedPrompt, setGeneratedPrompt] = useState('');
-  const [statusMessage, setStatusMessage] = useState('');
 
   const navigate = useNavigate();
 
+  // State for projects
+  const [projects, setProjects] = useState([]);
+  const [savedComments, setSavedComments] = useState([]);
+
+  // Supabase keys
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
-  // Dummy history data
-  const historyData = [
-    { id: 1, query: "Eco-friendly packaging for cosmetics", date: "Today, 10:23 AM", matches: 12, status: "completed" },
-    { id: 2, query: "AI tools for legal document review", date: "Yesterday, 4:45 PM", matches: 8, status: "saved" },
-    { id: 3, query: "Subscription box for pet owners", date: "Jan 15, 2:30 PM", matches: 24, status: "completed" },
-    { id: 4, query: "Vertical farming equipment", date: "Jan 14, 11:15 AM", matches: 0, status: "pending" },
-  ];
+  // Fetch projects from Supabase
+  const fetchProjects = async () => {
+    if (!user) return;
+    try {
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectsError) throw projectsError;
+      setProjects(projectsData || []);
+
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('saved_comments')
+        .select('*');
+
+      if (commentsError) throw commentsError;
+      setSavedComments(commentsData || []);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -43,6 +60,16 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch projects when user changes
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+    } else {
+      setProjects([]);
+      setSavedComments([]);
+    }
+  }, [user]);
 
   const handleLoginClick = () => {
     setModalMode('login');
@@ -74,39 +101,63 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    
-    setLoading(true);
-    setStatusMessage('Generating Reddit scrape prompt...');
-    setGeneratedPrompt(''); // Reset prompt
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-keywords', {
-        body: { input: text }
-      });
+      const { data, error } = await supabase.from('projects').insert([
+        {
+          user_id: user.id,
+          query: text,
+          status: 'completed',
+          matches_count: Math.floor(Math.random() * 20) // Random for demo
+        }
+      ]).select();
 
       if (error) throw error;
 
-      if (data && data.prompt) {
-        setGeneratedPrompt(data.prompt);
-        setStatusMessage('Prompt generated successfully!');
-      } else {
-        setStatusMessage('No prompt generated.');
-      }
-    } catch (err) {
-      console.error('Error generating keywords:', err);
-      setStatusMessage('Error: ' + err.message);
-    } finally {
-      setLoading(false);
+      const newProjectId = data[0]?.id;
+
+      // Refresh projects list locally
+      fetchProjects();
+
+      // Redirect to loading page
+      navigate('/loading', { state: { projectId: newProjectId } });
+
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert("Failed to save project. Check console.");
     }
   };
 
-  const openMarketGapTool = () => {
+  const openMarketGapTool = async () => {
     if (!user) {
       setModalMode('signup');
       setIsModalOpen(true);
       return;
     }
-    navigate('/loading');
+
+    try {
+      const { data, error } = await supabase.from('projects').insert([
+        {
+          user_id: user.id,
+          query: "Market Gap Discovery",
+          status: 'completed',
+          matches_count: Math.floor(Math.random() * 20)
+        }
+      ]).select();
+
+      if (error) throw error;
+
+      const newProjectId = data[0]?.id;
+
+      // Refresh projects list locally
+      fetchProjects();
+
+      navigate('/loading', { state: { projectId: newProjectId } });
+
+    } catch (error) {
+      console.error('Error starting market gap tool:', error);
+      navigate('/loading');
+    }
   };
 
   return (
@@ -131,30 +182,6 @@ function App() {
           <InputArea onSend={handleSend} />
         </div>
 
-        {/* Status and Results Display */}
-        <div style={{ maxWidth: '800px', margin: '20px auto', textAlign: 'center', color: '#c5c5d2' }}>
-            {loading && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ fontSize: '1.2rem' }}>✨ {statusMessage}</div>
-                    {/* Simple loader */}
-                    <div style={{ width: '20px', height: '20px', border: '2px solid #565869', borderTopColor: '#10a37f', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                </div>
-            )}
-
-            {!loading && !generatedPrompt && statusMessage && (
-                <div style={{ marginTop: '20px', color: statusMessage.startsWith('Error') ? '#ff4a4a' : '#c5c5d2' }}>
-                    {statusMessage}
-                </div>
-            )}
-            
-            {!loading && generatedPrompt && (
-              <div style={{ marginTop: '20px', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left' }}>
-                <h3 style={{ marginTop: 0, color: '#fff' }}>Reddit Scrape Prompt:</h3>
-                <p style={{ color: '#e5e5f0', lineHeight: 1.6 }}>{generatedPrompt}</p>
-              </div>
-            )}
-        </div>
-
         <div className="feature-promotion">
           <button className="wow-feature-btn" onClick={openMarketGapTool}>
             ✨ Find A Gap In The Market
@@ -177,7 +204,8 @@ function App() {
       <HistorySidebar
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
-        historyItems={historyData}
+        historyItems={projects}
+        savedComments={savedComments}
       />
     </div>
   );

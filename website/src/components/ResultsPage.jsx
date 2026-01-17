@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Header from './Header';
 import AuthModal from './AuthModal';
+import HistorySidebar from './HistorySidebar';
 import { supabase } from '../supabase';
-// import textLogo from '../assets/marketsnipe_text_logo.png'; // Not used in this version
+import { useLocation } from 'react-router-dom';
 import '../App.css';
 
-const ResultSlice = ({ title, text }) => (
+const ResultSlice = ({ title, text, onAdd }) => (
     <div style={{
         background: 'rgba(255, 255, 255, 0.03)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '12px',
-        padding: '1rem', /* Reduced padding slightly */
+        padding: '1rem',
         width: '100%',
         marginBottom: '0.8rem',
         transition: 'transform 0.2s ease, background 0.2s ease',
@@ -40,14 +41,6 @@ const ResultSlice = ({ title, text }) => (
                 fontWeight: 600,
                 transition: 'all 0.2s'
             }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(4, 141, 123, 0.3)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(4, 141, 123, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                }}
                 onClick={(e) => {
                     e.stopPropagation();
                     console.log("Analyze clicked for:", title);
@@ -76,7 +69,7 @@ const ResultSlice = ({ title, text }) => (
                 }}
                 onClick={(e) => {
                     e.stopPropagation();
-                    console.log("Add to Project clicked for:", title);
+                    onAdd(title, text);
                 }}
             >
                 + Add to Project
@@ -88,10 +81,41 @@ const ResultSlice = ({ title, text }) => (
 function ResultsPage() {
     const [user, setUser] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [modalMode, setModalMode] = useState('login');
+
+    // History State
+    const [projects, setProjects] = useState([]);
+    const [savedComments, setSavedComments] = useState([]);
+
+    const location = useLocation();
+    const projectId = location.state?.projectId;
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+
+    // Fetch projects from Supabase (Duplicated from App.jsx)
+    const fetchProjects = async () => {
+        if (!user) return;
+        try {
+            const { data: projectsData, error: projectsError } = await supabase
+                .from('projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (projectsError) throw projectsError;
+            setProjects(projectsData || []);
+
+            const { data: commentsData, error: commentsError } = await supabase
+                .from('saved_comments')
+                .select('*');
+
+            if (commentsError) throw commentsError;
+            setSavedComments(commentsData || []);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -105,6 +129,16 @@ function ResultsPage() {
         return () => subscription.unsubscribe();
     }, []);
 
+    // Fetch when user changes
+    useEffect(() => {
+        if (user) {
+            fetchProjects();
+        } else {
+            setProjects([]);
+            setSavedComments([]);
+        }
+    }, [user]);
+
     const handleLoginClick = () => {
         setModalMode('login');
         setIsModalOpen(true);
@@ -117,6 +151,41 @@ function ResultsPage() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    };
+
+    const handleAddToProject = async (title, text) => {
+        if (!user) {
+            setModalMode('signup');
+            setIsModalOpen(true);
+            return;
+        }
+
+        if (!projectId) {
+            alert("No active project found. Please start a search first.");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('saved_comments').insert([
+                {
+                    user_id: user.id,
+                    project_id: projectId,
+                    comment_text: text,
+                    source_url: 'Reddit',
+                    author: 'Unknown'
+                }
+            ]);
+
+            if (error) throw error;
+
+            // Refresh local list immediately
+            fetchProjects();
+
+            alert(`Saved "${title}" to your project!`);
+        } catch (error) {
+            console.error('Error saving comment:', error);
+            alert("Failed to save to project.");
+        }
     };
 
     if (!supabaseUrl || !supabaseKey) {
@@ -147,6 +216,7 @@ function ResultsPage() {
                     onLoginClick={handleLoginClick}
                     onSignupClick={handleSignupClick}
                     onLogoutClick={handleLogout}
+                    onHistoryClick={() => setIsHistoryOpen(true)}
                 />
             </div>
 
@@ -173,7 +243,7 @@ function ResultsPage() {
 
                     <div className="results-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {results.map(result => (
-                            <ResultSlice key={result.id} title={result.title} text={result.text} />
+                            <ResultSlice key={result.id} title={result.title} text={result.text} onAdd={handleAddToProject} />
                         ))}
                     </div>
 
@@ -190,6 +260,13 @@ function ResultsPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 initialMode={modalMode}
+            />
+
+            <HistorySidebar
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+                historyItems={projects}
+                savedComments={savedComments}
             />
         </div>
     );
