@@ -1,14 +1,21 @@
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import './Header.css';
 
 const Header = ({ user, onLoginClick, onSignupClick, onLogoutClick, onHistoryClick }) => {
+    const navigate = useNavigate();
+
     return (
         <header className="app-header">
             <div className="header-left">
-                <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
-                    <img src={logo} alt="MarketSnipe Icon" className="app-logo" />
-                </Link>
+                <img 
+                    src={logo} 
+                    alt="MarketSnipe Icon" 
+                    className="app-logo" 
+                    onClick={() => navigate('/')}
+                    style={{ cursor: 'pointer' }}
+                />
             </div>
 
             {/* Center text logo was removed previously */}

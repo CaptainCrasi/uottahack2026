@@ -5,8 +5,9 @@ import AuthModal from './AuthModal';
 import { supabase } from '../supabase';
 import textLogo from '../assets/marketsnipe_text_logo.png';
 import '../App.css';
+import { useAuth } from '../contexts/AuthContext';
 
-const Spinner = () => (
+const Spinner = ({ message }) => (
     <div className="spinner-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
         <div style={{
             width: '50px',
@@ -17,15 +18,15 @@ const Spinner = () => (
             animation: 'spin 1s linear infinite'
         }} />
         <p style={{ color: '#8e8ea0', fontSize: '1rem', animation: 'pulse 1.5s ease-in-out infinite', marginTop: '10px' }}>
-            Searching the web with YellowCake...
+            {message}
         </p>
     </div>
 );
 
 function LoadingPage() {
-    const [user, setUser] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalMode, setModalMode] = useState('login');
+    const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal } = useAuth();
+    const [statusMessage, setStatusMessage] = useState('Generating Reddit scrape prompt...');
+    const [generatedPrompt, setGeneratedPrompt] = useState('');
     const navigate = useNavigate();
     const location = useLocation();
     const projectId = location.state?.projectId;
@@ -53,19 +54,8 @@ function LoadingPage() {
         };
     }, [navigate, projectId]);
 
-    const handleLoginClick = () => {
-        setModalMode('login');
-        setIsModalOpen(true);
-    };
-
-    const handleSignupClick = () => {
-        setModalMode('signup');
-        setIsModalOpen(true);
-    };
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-    };
+        generatePrompt();
+    }, [navigate, location.state]);
 
     // We keep the env check for consistency
     if (!supabaseUrl || !supabaseKey) {
@@ -95,8 +85,14 @@ function LoadingPage() {
                     <img src={textLogo} alt="MarketSnipe" style={{ height: '24px', verticalAlign: 'middle', filter: 'brightness(0.9)' }} />
                 </div>
 
-                {/* Replaced InputArea and feature button with Spinner */}
-                <Spinner />
+                <Spinner message={statusMessage} />
+
+                {generatedPrompt && (
+                    <div style={{ maxWidth: '800px', margin: '20px auto', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left' }}>
+                        <h3 style={{ marginTop: 0, color: '#fff' }}>Generated Prompt:</h3>
+                        <p style={{ color: '#e5e5f0', lineHeight: 1.6 }}>{generatedPrompt}</p>
+                    </div>
+                )}
 
             </main>
 
@@ -108,7 +104,7 @@ function LoadingPage() {
 
             <AuthModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={closeModal}
                 initialMode={modalMode}
             />
         </div>

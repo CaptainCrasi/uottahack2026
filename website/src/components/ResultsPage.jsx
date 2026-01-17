@@ -5,6 +5,7 @@ import HistorySidebar from './HistorySidebar';
 import { supabase } from '../supabase';
 import { useLocation } from 'react-router-dom';
 import '../App.css';
+import { useAuth } from '../contexts/AuthContext';
 
 const ResultSlice = ({ title, text, onAdd }) => (
     <div style={{
@@ -151,6 +152,34 @@ function ResultsPage() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    const handleAddToProject = async (title, text) => {
+        if (!user) {
+            setModalMode('signup');
+            return;
+        }
+
+        if (!projectId) {
+            alert("No active project found. Please start a search first.");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('saved_comments').insert([
+                {
+                    user_id: user.id,
+                    project_id: projectId,
+                    comment_text: text,
+                    source_url: 'Reddit', // Placeholder for now
+                    author: 'Unknown'     // Placeholder for now
+                }
+            ]);
+
+            if (error) throw error;
+            alert(`Saved "${title}" to your project!`);
+        } catch (error) {
+            console.error('Error saving comment:', error);
+            alert("Failed to save to project.");
+        }
     };
 
     const handleAddToProject = async (title, text) => {
@@ -258,7 +287,7 @@ function ResultsPage() {
 
             <AuthModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={closeModal}
                 initialMode={modalMode}
             />
 

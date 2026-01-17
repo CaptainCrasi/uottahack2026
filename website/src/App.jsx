@@ -6,12 +6,12 @@ import InputArea from './components/InputArea';
 import AuthModal from './components/AuthModal';
 import textLogo from './assets/marketsnipe_text_logo.png';
 import './App.css';
+import { useAuth } from './contexts/AuthContext';
 
 import HistorySidebar from './components/HistorySidebar';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal, setModalMode } = useAuth();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [modalMode, setModalMode] = useState('login');
 
@@ -49,17 +49,15 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+      if (projectsError) throw projectsError;
+      setProjects(projectsData || []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('saved_comments')
+        .select('*');
 
-    return () => subscription.unsubscribe();
-  }, []);
+      if (commentsError) throw commentsError;
+      setSavedComments(commentsData || []);
 
   // Fetch projects when user changes
   useEffect(() => {
@@ -81,9 +79,15 @@ function App() {
     setIsModalOpen(true);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  // Fetch projects when user changes
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+    } else {
+      setProjects([]);
+      setSavedComments([]);
+    }
+  }, [user]);
 
   if (!supabaseUrl || !supabaseKey) {
     return (
@@ -101,31 +105,9 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-
-    try {
-      const { data, error } = await supabase.from('projects').insert([
-        {
-          user_id: user.id,
-          query: text,
-          status: 'completed',
-          matches_count: Math.floor(Math.random() * 20) // Random for demo
-        }
-      ]).select();
-
-      if (error) throw error;
-
-      const newProjectId = data[0]?.id;
-
-      // Refresh projects list locally
-      fetchProjects();
-
-      // Redirect to loading page
-      navigate('/loading', { state: { projectId: newProjectId } });
-
-    } catch (error) {
-      console.error('Error saving project:', error);
-      alert("Failed to save project. Check console.");
-    }
+    
+    // Navigate to loading page with the input text
+    navigate('/loading', { state: { inputText: text } });
   };
 
   const openMarketGapTool = async () => {
@@ -197,7 +179,7 @@ function App() {
 
       <AuthModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         initialMode={modalMode}
       />
 

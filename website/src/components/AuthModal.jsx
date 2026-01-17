@@ -12,6 +12,9 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         setLoading(true);
         setError(null);
         try {
+            // Get the current origin (handles both localhost and production)
+            const redirectTo = window.location.origin;
+            
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -19,7 +22,6 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                 }
             });
             if (error) throw error;
-            // Configured to redirect to current page or specific URL in dashboard
         } catch (error) {
             setError(error.message);
             setLoading(false);
