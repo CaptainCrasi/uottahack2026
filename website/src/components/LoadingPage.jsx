@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from './Header';
 import AuthModal from './AuthModal';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../supabase';
 import textLogo from '../assets/marketsnipe_text_logo.png';
 import '../App.css';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,9 +37,6 @@ function LoadingPage() {
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-    // Create supabase client with anon key for edge function calls
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
     const addLog = (message, type = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
         setLogs(prev => [...prev, { timestamp, message, type }]);
@@ -61,17 +58,28 @@ function LoadingPage() {
                 addLog('Starting prompt generation...', 'info');
                 setStatusMessage('Generating Reddit scrape prompt...');
                 
-                addLog(`Calling generate-keywords with input: "${inputText}"`, 'info');
-                const { data, error } = await supabaseClient.functions.invoke('generate-keywords', {
-                    body: { input: inputText }
+                addLog(`Calling openrouter-call with input: "${inputText}"`, 'info');
+                const functionUrl = `${supabaseUrl}/functions/v1/openrouter-call`;
+                const functionResponse = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'apikey': supabaseAnonKey,
+                    },
+                    body: JSON.stringify({ input: inputText })
                 });
 
-                if (error) {
-                    addLog(`generate-keywords error: ${JSON.stringify(error)}`, 'error');
-                    throw error;
+                addLog(`openrouter-call status: ${functionResponse.status}`, functionResponse.ok ? 'success' : 'error');
+
+                if (!functionResponse.ok) {
+                    const errorBody = await functionResponse.text();
+                    addLog(`openrouter-call error body: ${errorBody}`, 'error');
+                    throw new Error(`openrouter-call failed with status ${functionResponse.status}`);
                 }
 
-                addLog(`generate-keywords response: ${JSON.stringify(data)}`, 'success');
+                const data = await functionResponse.json();
+                addLog(`openrouter-call response: ${JSON.stringify(data)}`, 'success');
 
                 if (!data || !data.prompt) {
                     addLog('No prompt generated in response', 'error');
