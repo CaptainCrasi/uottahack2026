@@ -5,12 +5,14 @@ import { supabase } from '../supabase';
 // import textLogo from '../assets/marketsnipe_text_logo.png'; // Not used in this version
 import '../App.css';
 
-const ResultSlice = ({ title, text }) => (
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const ResultSlice = ({ title, text, onAdd }) => (
     <div style={{
         background: 'rgba(255, 255, 255, 0.03)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '12px',
-        padding: '1rem', /* Reduced padding slightly */
+        padding: '1rem',
         width: '100%',
         marginBottom: '0.8rem',
         transition: 'transform 0.2s ease, background 0.2s ease',
@@ -40,14 +42,6 @@ const ResultSlice = ({ title, text }) => (
                 fontWeight: 600,
                 transition: 'all 0.2s'
             }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(4, 141, 123, 0.3)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(4, 141, 123, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                }}
                 onClick={(e) => {
                     e.stopPropagation();
                     console.log("Analyze clicked for:", title);
@@ -76,7 +70,7 @@ const ResultSlice = ({ title, text }) => (
                 }}
                 onClick={(e) => {
                     e.stopPropagation();
-                    console.log("Add to Project clicked for:", title);
+                    onAdd(title, text);
                 }}
             >
                 + Add to Project
@@ -89,6 +83,9 @@ function ResultsPage() {
     const [user, setUser] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('login');
+
+    const location = useLocation();
+    const projectId = location.state?.projectId;
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
@@ -117,6 +114,37 @@ function ResultsPage() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    };
+
+    const handleAddToProject = async (title, text) => {
+        if (!user) {
+            setModalMode('signup');
+            setIsModalOpen(true);
+            return;
+        }
+
+        if (!projectId) {
+            alert("No active project found. Please start a search first.");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('saved_comments').insert([
+                {
+                    user_id: user.id,
+                    project_id: projectId,
+                    comment_text: text,
+                    source_url: 'Reddit', // Placeholder for now
+                    author: 'Unknown'     // Placeholder for now
+                }
+            ]);
+
+            if (error) throw error;
+            alert(`Saved "${title}" to your project!`);
+        } catch (error) {
+            console.error('Error saving comment:', error);
+            alert("Failed to save to project.");
+        }
     };
 
     if (!supabaseUrl || !supabaseKey) {
@@ -173,7 +201,7 @@ function ResultsPage() {
 
                     <div className="results-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {results.map(result => (
-                            <ResultSlice key={result.id} title={result.title} text={result.text} />
+                            <ResultSlice key={result.id} title={result.title} text={result.text} onAdd={handleAddToProject} />
                         ))}
                     </div>
 
