@@ -34,9 +34,9 @@ Deno.serve(async (req)=>{
 ${context}
 
 Generate ONE sentence following this structure:
-Return exactly 10 items. Output each as {post_link}. Only include posts where the author describes a problem with [BRANDS/TOOLS] such as [PAIN_POINT_1], [PAIN_POINT_2], [PAIN_POINT_3], especially [FRUSTRATION] while [USER_GOAL].
+Return exactly 5 items. Output each as {post_link}. Only include posts where the author describes a problem with [BRANDS/TOOLS] such as [PAIN_POINT_1], [PAIN_POINT_2], [PAIN_POINT_3], especially [FRUSTRATION] while [USER_GOAL].
 
-Example: Return exactly 10 items. Output each as {post_link}. Only include posts where the author describes a problem with Stripe/PayPal/Square such as frozen payouts, surprise reserves, or delayed settlements, especially when dealing with high-risk transactions while running an online store.
+Example: Return exactly 5 items. Output each as {post_link}. Only include posts where the author describes a problem with Stripe/PayPal/Square such as frozen payouts, surprise reserves, or delayed settlements, especially when dealing with high-risk transactions while running an online store.
 
 Output only the sentence, no explanation.`;
     console.log('Calling OpenRouter (Gemini 2.5 Flash Lite)...');
