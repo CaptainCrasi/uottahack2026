@@ -14,6 +14,10 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [modalMode, setModalMode] = useState('login');
+  
+  const [loading, setLoading] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
 
   const navigate = useNavigate();
 
@@ -101,30 +105,29 @@ function App() {
       setIsModalOpen(true);
       return;
     }
+    
+    setLoading(true);
+    setStatusMessage('Generating Reddit scrape prompt...');
+    setGeneratedPrompt(''); // Reset prompt
 
     try {
-      const { data, error } = await supabase.from('projects').insert([
-        {
-          user_id: user.id,
-          query: text,
-          status: 'completed',
-          matches_count: Math.floor(Math.random() * 20) // Random for demo
-        }
-      ]).select();
+      const { data, error } = await supabase.functions.invoke('generate-keywords', {
+        body: { input: text }
+      });
 
       if (error) throw error;
 
-      const newProjectId = data[0]?.id;
-
-      // Refresh projects list locally
-      fetchProjects();
-
-      // Redirect to loading page
-      navigate('/loading', { state: { projectId: newProjectId } });
-
-    } catch (error) {
-      console.error('Error saving project:', error);
-      alert("Failed to save project. Check console.");
+      if (data && data.prompt) {
+        setGeneratedPrompt(data.prompt);
+        setStatusMessage('Prompt generated successfully!');
+      } else {
+        setStatusMessage('No prompt generated.');
+      }
+    } catch (err) {
+      console.error('Error generating keywords:', err);
+      setStatusMessage('Error: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,6 +160,30 @@ function App() {
 
         <div className="input-centering-container">
           <InputArea onSend={handleSend} />
+        </div>
+
+        {/* Status and Results Display */}
+        <div style={{ maxWidth: '800px', margin: '20px auto', textAlign: 'center', color: '#c5c5d2' }}>
+            {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ fontSize: '1.2rem' }}>✨ {statusMessage}</div>
+                    {/* Simple loader */}
+                    <div style={{ width: '20px', height: '20px', border: '2px solid #565869', borderTopColor: '#10a37f', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                </div>
+            )}
+
+            {!loading && !generatedPrompt && statusMessage && (
+                <div style={{ marginTop: '20px', color: statusMessage.startsWith('Error') ? '#ff4a4a' : '#c5c5d2' }}>
+                    {statusMessage}
+                </div>
+            )}
+            
+            {!loading && generatedPrompt && (
+              <div style={{ marginTop: '20px', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left' }}>
+                <h3 style={{ marginTop: 0, color: '#fff' }}>Reddit Scrape Prompt:</h3>
+                <p style={{ color: '#e5e5f0', lineHeight: 1.6 }}>{generatedPrompt}</p>
+              </div>
+            )}
         </div>
 
         <div className="feature-promotion">
