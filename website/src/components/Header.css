@@ -14,29 +14,37 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    font-weight: 600;
-    font-size: 1.25rem;
-    color: var(--text-main);
     cursor: pointer;
 }
 
-.app-logo {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    border-radius: 6px;
-    /* soft rounded square like the icon */
+.header-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Ensure Logo Text is cleaner */
-.logo-text {
-    font-family: 'Inter', sans-serif;
-    letter-spacing: -0.5px;
+.app-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 8px;
+    /* Slightly more rounded for larger size */
+}
+
+/* Text logo image styling */
+.app-text-logo {
+    height: 24px;
+    object-fit: contain;
+    margin-top: 2px;
 }
 
 .header-right {
     display: flex;
-    gap: 0.75rem;
+    gap: 1rem;
+    align-items: center;
 }
 
 .btn-secondary {
