@@ -4,6 +4,19 @@ import InputArea from './components/InputArea';
 import './App.css';
 
 function App() {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return (
+      <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '20px' }}>
+        <h1 style={{ color: '#ff4a4a' }}>Configuration Error</h1>
+        <p>Environment files missing. Please check your .env file.</p>
+        <p style={{ fontSize: '0.9rem', color: '#888' }}>Required: VITE_SUPABASE_URL, VITE_SUPABASE_KEY</p>
+      </div>
+    );
+  }
+
   const handleSend = (text) => {
     console.log("User sent:", text);
     // In a real app, this would trigger navigation to the chat view
