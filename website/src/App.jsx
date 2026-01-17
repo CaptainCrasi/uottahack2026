@@ -1,51 +1,30 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import Message from './components/Message';
+import React from 'react';
+import Header from './components/Header';
 import InputArea from './components/InputArea';
-import './App.css'; // We will create this for layout
+import './App.css';
 
 function App() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am your AI assistant. How can I help you today?' }
-  ]);
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const handleSend = (text) => {
-    // Add user message
-    const newMessages = [...messages, { role: 'user', content: text }];
-    setMessages(newMessages);
-
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: "I'm a demo AI. I can't actually think yet, but I look nice and green! \n\nCheck out this unique professional interface."
-      }]);
-    }, 1000);
+    console.log("User sent:", text);
+    // In a real app, this would trigger navigation to the chat view
+    alert("This is a demo of the Guest UI. Sending: " + text);
   };
 
   return (
     <div className="app-container">
-      <Sidebar />
-      <main className="main-chat">
-        <div className="messages-container">
-          {messages.map((msg, idx) => (
-            <Message key={idx} role={msg.role} content={msg.content} />
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-        <div className="input-area-wrapper">
+      <Header />
+
+      <main className="main-content">
+        <h1 className="hero-text">What can I help with?</h1>
+
+        <div className="input-centering-container">
           <InputArea onSend={handleSend} />
         </div>
       </main>
+
+      <footer className="footer-disclaimer">
+        By messaging ChatGPT, an AI chatbot, you agree to our <a href="#">Terms</a> and have read our <a href="#">Privacy Policy</a>. See <a href="#">Cookie Preferences</a>.
+      </footer>
     </div>
   );
 }

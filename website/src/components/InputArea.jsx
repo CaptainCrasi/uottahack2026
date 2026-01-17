@@ -18,24 +18,38 @@ const InputArea = ({ onSend }) => {
     };
 
     return (
-        <div className="input-container">
-            <div className="input-box">
+        <div className="input-area-wrapper-guest">
+            <div className="input-main-container">
                 <textarea
                     rows={1}
-                    placeholder="Send a message..."
+                    placeholder="Ask anything"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                 />
-                <button className="send-btn" onClick={handleSend} disabled={!input.trim()}>
-                    <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </button>
-            </div>
-            <div className="disclaimer">
-                Free Research Preview. ChatGPT may produce inaccurate information about people, places, or facts.
+
+                <div className="input-actions-row">
+                    <div className="input-actions-left">
+                        <button className="action-pill">
+                            <span className="icon">📎</span> Attach
+                        </button>
+                        <button className="action-pill">
+                            <span className="icon">🌐</span> Search
+                        </button>
+                        <button className="action-pill">
+                            <span className="icon">🎓</span> Study
+                        </button>
+                        <button className="action-pill">
+                            <span className="icon">🖼️</span> Create image
+                        </button>
+                    </div>
+
+                    <div className="input-actions-right">
+                        <button className="action-pill voice-btn" title="Voice Mode">
+                            <span className="icon">|||</span> Voice
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
