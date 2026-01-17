@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import AuthModal from './AuthModal';
-import React from 'react';
 import logo from '../assets/logo.png';
 import './Header.css';
 
