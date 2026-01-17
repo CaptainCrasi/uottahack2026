@@ -6,14 +6,13 @@ import InputArea from './components/InputArea';
 import AuthModal from './components/AuthModal';
 import textLogo from './assets/marketsnipe_text_logo.png';
 import './App.css';
+import { useAuth } from './contexts/AuthContext';
 
 import HistorySidebar from './components/HistorySidebar';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal, setModalMode } = useAuth();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('login');
 
   const navigate = useNavigate();
 
@@ -49,18 +48,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   // Fetch projects when user changes
   useEffect(() => {
     if (user) {
@@ -70,20 +57,6 @@ function App() {
       setSavedComments([]);
     }
   }, [user]);
-
-  const handleLoginClick = () => {
-    setModalMode('login');
-    setIsModalOpen(true);
-  };
-
-  const handleSignupClick = () => {
-    setModalMode('signup');
-    setIsModalOpen(true);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
 
   if (!supabaseUrl || !supabaseKey) {
     return (
@@ -152,7 +125,7 @@ function App() {
 
       <AuthModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         initialMode={modalMode}
       />
 

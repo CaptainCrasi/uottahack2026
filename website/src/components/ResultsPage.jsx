@@ -4,6 +4,7 @@ import AuthModal from './AuthModal';
 import { supabase } from '../supabase';
 // import textLogo from '../assets/marketsnipe_text_logo.png'; // Not used in this version
 import '../App.css';
+import { useAuth } from '../contexts/AuthContext';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -80,9 +81,7 @@ const ResultSlice = ({ title, text, onAdd }) => (
 );
 
 function ResultsPage() {
-    const [user, setUser] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalMode, setModalMode] = useState('login');
+    const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal, setModalMode } = useAuth();
 
     const location = useLocation();
     const projectId = location.state?.projectId;
@@ -90,36 +89,9 @@ function ResultsPage() {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    const handleLoginClick = () => {
-        setModalMode('login');
-        setIsModalOpen(true);
-    };
-
-    const handleSignupClick = () => {
-        setModalMode('signup');
-        setIsModalOpen(true);
-    };
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-    };
-
     const handleAddToProject = async (title, text) => {
         if (!user) {
             setModalMode('signup');
-            setIsModalOpen(true);
             return;
         }
 
@@ -216,7 +188,7 @@ function ResultsPage() {
 
             <AuthModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={closeModal}
                 initialMode={modalMode}
             />
         </div>
