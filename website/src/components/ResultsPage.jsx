@@ -253,7 +253,9 @@ function ResultsPage() {
         }
     }, [sessionLogs]);
 
+    // Hydrate results with full Reddit data
     useEffect(() => {
+        // Initialize cache if needed
         if (scrapedResults.length > 0) {
             setCachedResults(scrapedResults);
             if (typeof window !== 'undefined') {
@@ -266,6 +268,193 @@ function ResultsPage() {
                     setCachedResults(JSON.parse(stored));
                 } catch (err) {
                     console.error('Failed to parse cached chunk data:', err);
+                }
+            }
+        }
+
+        // Fetch detailed data for each result
+        const hydrateResults = async () => {
+            // Only hydrate if we have results and they haven't been hydrated yet (avoid infinite loop or re-fetching)
+            // We can check if a result needs hydration if it lacks 'hydrated' flag or specific fields
+            // For now, let's just try to fetch for all that have a URL but missing detailed body/score
+
+            // We need to work with the latest results source, which is either scrapedResults or cached
+            const source = scrapedResults.length > 0 ? scrapedResults : cachedResults;
+            if (source.length === 0) return;
+
+            const newResults = [...source];
+            let hasUpdates = false;
+
+            for (let i = 0; i < newResults.length; i++) {
+                const result = newResults[i];
+                const url = result.post_link || result.url;
+
+                // Skip if no URL or already looks like it has full data (e.g. selftext is populated and not generic)
+                // Or if we already marked it as hydrated
+                if (!url || result.hydrated === true) continue;
+
+                try {
+                    // Mark as hydrating to prevent double fetch if we re-run
+                    newResults[i].hydrated = 'loading'; // Temporary state? or just don't set true yet. 
+                    // Actually, better to just fire simpler promises? 
+                    // Let's do it sequentially for now to be safe, or parallel
+
+                    // We update state individually to show progress?
+                    // Or batch? Let's update state individually for better UX
+                } catch (e) {
+                    // ignore
+                }
+            }
+        };
+
+        // Actually, a better pattern:
+        // Iterate through cachedResults. If any item needs hydration, trigger a fetch for it.
+        // Update the item in setCachedResults when done.
+
+        cachedResults.forEach(async (result, index) => {
+            const url = result.post_link || result.url;
+            if (!url || result.hydrated || result.hydrating) return;
+
+            // Mark as hydrating to prevent duplicates
+            setCachedResults(prev => {
+                const update = [...prev];
+                update[index] = { ...update[index], hydrating: true };
+                return update;
+            });
+
+            try {
+                // Use local proxy or Vercel function
+                // Using relative path so it works in both dev (via vite proxy) and prod (on Vercel domain)
+                const response = await fetch('/api/reddit-meta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Proxy error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Merge data
+                setCachedResults(prev => {
+                    const update = [...prev];
+                    update[index] = {
+                        ...update[index],
+                        title: data.subreddit ? `r/${data.subreddit}` : update[index].title,
+                        postTitle: data.title,
+                        text: data.text || data.title, // text (selftext) from proxy
+                        score: data.upvotes,
+                        comments: data.comments,
+                        date: data.date,
+                        body: data.text || update[index].body,
+                        hydrated: true,
+                        hydrating: false
+                    };
+                    // Update storage too
+                    if (typeof window !== 'undefined') {
+                        window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(update));
+                    }
+                    return update;
+                });
+            } catch (err) {
+                console.warn(`Failed to hydrate result ${index}:`, err);
+                setCachedResults(prev => {
+                    const update = [...prev];
+                    update[index] = { ...update[index], hydrating: false, hydrated: true }; // Mark hydrated so we don't retry forever
+                    return update;
+                });
+            }
+        });
+
+    }, [scrapedResults.length]); // Dependencies? We want to run this when we load the page or new results come in. 
+    // Ideally we depend on cachedResults but that causes infinite loop if we update it.
+    // So we rely on the initial load logic or a specific triggering effect.
+    // Logic above: scrapedResults change triggers it. What if we reload and scrapedResults is empty but cachedResults is populated?
+    // We need an effect that runs once on mount or when cachedResults is initially set.
+
+    // Let's separate hydration effect
+    useEffect(() => {
+        if (cachedResults.length === 0) return;
+
+        cachedResults.forEach((result, index) => {
+            const url = result.post_link || result.url;
+            // Check if already hydrated or hydrating
+            if (!url || result.hydrated || result.hydrating) return;
+
+            // Only fetch if it looks like a real reddit link
+            if (!url.includes('reddit.com')) return;
+
+            // Trigger fetch
+            (async () => {
+                // Set hydrating flag
+                setCachedResults(prev => {
+                    // Safe check to avoid setting if already hydrating in latest state
+                    if (prev[index].hydrating) return prev;
+                    const update = [...prev];
+                    update[index] = { ...update[index], hydrating: true };
+                    return update;
+                });
+
+                try {
+                    const { data, error } = await supabase.functions.invoke('fetch-reddit-post', {
+                        body: { url }
+                    });
+
+                    if (error) throw error;
+
+                    setCachedResults(prev => {
+                        const update = [...prev];
+                        // Preserve original keys but overwrite with detailed data
+                        update[index] = {
+                            ...update[index],
+                            ...data,
+                            body: data.selftext || data.title, // Fallback if no body
+                            hydrated: true,
+                            hydrating: false
+                        };
+                        if (typeof window !== 'undefined') {
+                            window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(update));
+                        }
+                        return update;
+                    });
+
+                } catch (e) {
+                    console.warn('Hydration failed for', url, e);
+                    setCachedResults(prev => {
+                        const update = [...prev];
+                        update[index] = { ...update[index], hydrating: false, hydrated: true }; // Stop trying
+                        return update;
+                    });
+                }
+            })();
+        });
+    }, [cachedResults.length]); // Only run if list length changes (new items) or initial load. 
+    // Note: updating state inside doesn't change length, so this is safe.
+
+    // Original effect for loading scrapedResults into cache
+    useEffect(() => {
+        if (scrapedResults.length > 0) {
+            // Check if we already have these in cache to preserve hydration?
+            // If scrapedResults comes from navigate state, it might mean a FRESH search.
+            // So we should probably reset unless we want to keep old cache?
+            // Usually new search = new results.
+            setCachedResults(scrapedResults);
+            if (typeof window !== 'undefined') {
+                window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(scrapedResults));
+            }
+        }
+        // Fallback load moved to state initializer or separate effect? 
+        // We can leave the original logic if we are careful.
+        else if (typeof window !== 'undefined' && cachedResults.length === 0) {
+            const stored = window.sessionStorage.getItem('yellowcake_chunk_cache');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    setCachedResults(parsed);
+                } catch (err) {
+                    // ignore
                 }
             }
         }
@@ -483,7 +672,7 @@ function ResultsPage() {
     };
 
     // Convert scraped results to display format
-    const results = cachedResults.length > 0 
+    const results = cachedResults.length > 0
         ? cachedResults.map((result, index) => {
             const postLink = extractPostLink(result);
             const displayText = postLink || safeStringify(result) || 'No Reddit link detected.';
@@ -494,13 +683,58 @@ function ResultsPage() {
                 url: postLink,
                 raw: result
             };
-        })
+        }).sort((a, b) => (parseInt(b.score) || 0) - (parseInt(a.score) || 0))
         : [
-            { id: 1, title: "Market Gap Opportunity #1", text: "Analyzing subreddit discussions reveals a significant demand for automated social media scheduling tools specifically for artists." },
-            { id: 2, title: "Market Gap Opportunity #2", text: "Users in r/smallbusiness are frequently complaining about the complexity of existing CRM solutions for solo entrepreneurs." },
-            { id: 3, title: "Market Gap Opportunity #3", text: "There is a growing trend in r/productivity asking for a distraction-free writing app that integrates directly with WordPress." },
-            { id: 4, title: "Market Gap Opportunity #4", text: "Gamers in r/pcgaming are looking for a unified launcher that is lightweight and open-source, as current options are bloated." },
-            { id: 5, title: "Market Gap Opportunity #5", text: "Review of r/homeautomation suggests a gap for a privacy-focused, offline-first voice assistant for smart home control." },
+            {
+                id: 1,
+                title: "r/ArtistLounge",
+                postTitle: "Why is there no good scheduler for artists?",
+                text: "Analyzing subreddit discussions reveals a significant demand for automated social media scheduling tools specifically for artists. I've been looking for something that handles Instagram sizes correctly but no luck.",
+                url: "https://reddit.com/r/ArtistLounge",
+                comments: 42,
+                score: 156,
+                date: "10/24/2023"
+            },
+            {
+                id: 2,
+                title: "r/smallbusiness",
+                postTitle: "CRM for solo founders?",
+                text: "Users in r/smallbusiness are frequently complaining about the complexity of existing CRM solutions for solo entrepreneurs. Hubspot is too expensive and Excel is too messy.",
+                url: "https://reddit.com/r/smallbusiness",
+                comments: 89,
+                score: 340,
+                date: "11/02/2023"
+            },
+            {
+                id: 3,
+                title: "r/productivity",
+                postTitle: "Distraction free writing app needed",
+                text: "There is a growing trend in r/productivity asking for a distraction-free writing app that integrates directly with WordPress.",
+                url: "https://reddit.com/r/productivity",
+                comments: 12,
+                score: 45,
+                date: "Yesterday"
+            },
+            {
+                id: 4,
+                title: "r/pcgaming",
+                postTitle: "Launcher fatigue is real",
+                text: "Gamers in r/pcgaming are looking for a unified launcher that is lightweight and open-source, as current options are bloated.",
+                url: "https://reddit.com/r/pcgaming",
+                comments: 231,
+                score: 1205,
+                date: "2 days ago"
+            },
+            {
+                id: 5,
+                title: "r/homeautomation",
+                postTitle: "Offline voice assistant?",
+                text: "Review of r/homeautomation suggests a gap for a privacy-focused, offline-first voice assistant for smart home control.",
+                url: "https://reddit.com/r/homeautomation",
+                comments: 56,
+                score: 210,
+                date: "1 week ago"
+            },
         ];
 
     return (
