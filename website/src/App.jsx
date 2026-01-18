@@ -84,7 +84,7 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    navigate('/loading');
+    navigate('/explore');
   };
 
   return (
