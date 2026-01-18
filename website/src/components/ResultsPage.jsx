@@ -6,79 +6,227 @@ import { supabase } from '../supabase';
 import '../App.css';
 import { useAuth } from '../contexts/AuthContext';
 
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
-const ResultSlice = ({ title, text, onAdd }) => (
-    <div style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '12px',
-        padding: '1rem',
-        width: '100%',
-        marginBottom: '0.8rem',
-        transition: 'transform 0.2s ease, background 0.2s ease',
-        cursor: 'pointer'
-    }}
-        className="result-slice"
-        onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-            e.currentTarget.style.transform = 'translateY(-2px)';
+const sanitizeLink = (candidate) => {
+    if (typeof candidate !== 'string') return '';
+    const unquoted = candidate.trim().replace(/^"+|"+$/g, '').replace(/\\\//g, '/');
+    if (!/^https?:\/\//i.test(unquoted)) {
+        return '';
+    }
+    return unquoted;
+};
+
+const safeStringify = (value) => {
+    if (typeof value === 'string') {
+        return value;
+    }
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch (_err) {
+        return '';
+    }
+};
+
+const extractPostLink = (result) => {
+    if (!result) return '';
+
+    const candidateList = [
+        result.post_link,
+        result.url,
+        result.link,
+        result.permalink,
+        result.post?.link,
+        result.post?.url,
+        result.metadata?.post_link,
+        result.metadata?.url,
+        result.chunk?.post_link,
+        result.chunk?.url,
+        result.chunk?.link,
+        result.chunk?.permalink,
+        result.chunk?.metadata?.post_link,
+        result.chunk?.metadata?.url,
+        Array.isArray(result.links) ? result.links[0] : null,
+    ];
+
+    for (const candidate of candidateList) {
+        const sanitized = sanitizeLink(candidate);
+        if (sanitized) {
+            return sanitized;
+        }
+    }
+
+    const serialized = typeof result === 'string' ? result : (() => {
+        try {
+            return JSON.stringify(result);
+        } catch (_err) {
+            return '';
+        }
+    })();
+
+    if (!serialized) {
+        return '';
+    }
+
+    const match = serialized.match(/https?:\\?\/?\\?\/[\w.?=&%\-#/]+/i);
+    if (match) {
+        return sanitizeLink(match[0]);
+    }
+
+    return '';
+};
+
+const ResultSlice = ({ title, text, url, onAdd, onAnalyze, analysis }) => {
+    const isLoading = analysis?.status === 'loading';
+    const hasLink = Boolean(url);
+    const analyzeLabel = !hasLink ? 'No Link' : isLoading ? 'Analyzing...' : 'Analyze';
+
+    const buildPermalink = (link) => {
+        if (!link) return null;
+        if (link.startsWith('http')) return link;
+        return `https://old.reddit.com${link}`;
+    };
+
+    return (
+        <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '1rem',
+            width: '100%',
+            marginBottom: '0.8rem',
+            transition: 'transform 0.2s ease, background 0.2s ease',
+            cursor: 'pointer'
         }}
-        onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-            e.currentTarget.style.transform = 'translateY(0)';
-        }}
-    >
-        <h3 style={{ margin: '0 0 0.3rem 0', color: '#ececf1', fontSize: '1rem' }}>{title}</h3>
-        <p style={{ margin: '0 0 0.8rem 0', color: '#9da3ae', fontSize: '0.9rem' }}>{text}</p>
-        <div style={{ display: 'flex', gap: '10px' }}>
-            <button style={{
-                background: 'rgba(4, 141, 123, 0.2)',
-                border: '1px solid rgba(4, 141, 123, 0.5)',
-                color: '#048d7b',
-                padding: '6px 16px',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s'
+            className="result-slice"
+            onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
             }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("Analyze clicked for:", title);
-                }}
-            >
-                Analyze
-            </button>
-            <button style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#c5c5d2',
-                padding: '6px 16px',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                fontWeight: 500,
-                transition: 'all 0.2s'
+            onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                e.currentTarget.style.transform = 'translateY(0)';
             }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.color = 'white';
+        >
+            <h3 style={{ margin: '0 0 0.3rem 0', color: '#ececf1', fontSize: '1rem' }}>{title}</h3>
+            <p style={{ margin: '0 0 0.8rem 0', color: '#9da3ae', fontSize: '0.9rem', wordBreak: 'break-all' }}>{text}</p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+                <button style={{
+                    background: hasLink ? 'rgba(4, 141, 123, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                    border: hasLink ? '1px solid rgba(4, 141, 123, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: hasLink ? '#048d7b' : '#6b6b7c',
+                    padding: '6px 16px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    cursor: hasLink && !isLoading ? 'pointer' : 'not-allowed',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                    opacity: hasLink ? 1 : 0.7
                 }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                    e.currentTarget.style.color = '#c5c5d2';
+                    disabled={!hasLink || isLoading}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (hasLink) {
+                            onAnalyze();
+                        }
+                    }}
+                >
+                    {analyzeLabel}
+                </button>
+                <button style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#c5c5d2',
+                    padding: '6px 16px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    transition: 'all 0.2s'
                 }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onAdd(title, text);
-                }}
-            >
-                + Add to Project
-            </button>
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.color = '#c5c5d2';
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onAdd(title, text);
+                    }}
+                >
+                    + Add to Project
+                </button>
+            </div>
+
+            {analysis && (
+                <div style={{
+                    marginTop: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    animation: 'fadeIn 0.2s ease'
+                }}>
+                    {analysis.status === 'loading' && (
+                        <p style={{ color: '#9da3ae', margin: 0 }}>{analysis.message || 'Analyzing comments...'}</p>
+                    )}
+
+                    {analysis.status === 'error' && (
+                        <p style={{ color: '#ff6b6b', margin: 0 }}>{analysis.error || 'Unable to analyze this post.'}</p>
+                    )}
+
+                    {analysis.status === 'complete' && (
+                        analysis.comments?.length ? (
+                            analysis.comments.map((comment, index) => {
+                                const commentLink = buildPermalink(comment?.permalink);
+                                return (
+                                    <div key={commentLink || `${title}-comment-${index}`} style={{
+                                        padding: '0.65rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                                        background: 'rgba(255, 255, 255, 0.01)',
+                                        marginBottom: index !== analysis.comments.length - 1 ? '0.5rem' : 0
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                            <span style={{ color: '#9da3ae', fontSize: '0.8rem' }}>Comment {index + 1}</span>
+                                            {commentLink && (
+                                                <a href={commentLink} target="_blank" rel="noopener noreferrer" style={{ color: '#048d7b', fontSize: '0.8rem' }}>
+                                                    View Thread -&gt;
+                                                </a>
+                                            )}
+                                        </div>
+                                        <p style={{ color: '#d7dae0', margin: '0 0 0.45rem 0', lineHeight: 1.4 }}>
+                                            {comment?.comment_summary || comment?.comment || comment?.summary || 'No insight provided.'}
+                                        </p>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.75rem', color: '#9da3ae' }}>
+                                            <span>by {comment?.author || 'Unknown'}</span>
+                                            {comment?.pain_point && (
+                                                <span style={{
+                                                    background: 'rgba(4, 141, 123, 0.2)',
+                                                    border: '1px solid rgba(4, 141, 123, 0.4)',
+                                                    borderRadius: '12px',
+                                                    padding: '0.15rem 0.5rem',
+                                                    color: '#64d3c4'
+                                                }}>
+                                                    {comment.pain_point}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <p style={{ color: '#9da3ae', margin: 0 }}>No insightful comments detected.</p>
+                        )
+                    )}
+                </div>
+            )}
         </div>
-    </div>
-);
+    );
+};
 
 function ResultsPage() {
     const { user, isModalOpen, modalMode, handleLoginClick, handleSignupClick, handleLogout, closeModal, setModalMode } = useAuth();
@@ -87,10 +235,12 @@ function ResultsPage() {
     const projectId = location.state?.projectId;
     const scrapedResults = location.state?.results || [];
     const [cachedResults, setCachedResults] = useState(scrapedResults);
+    const [analysisMap, setAnalysisMap] = useState({});
     const sessionLogs = location.state?.logs || [];
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     // Log session logs when component mounts
     useEffect(() => {
@@ -151,7 +301,7 @@ function ResultsPage() {
         }
     };
 
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseKey || !supabaseAnonKey) {
         return (
             <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '20px' }}>
                 <h1 style={{ color: '#ff4a4a' }}>Configuration Error</h1>
@@ -160,16 +310,189 @@ function ResultsPage() {
         );
     }
 
+    const handleAnalyzePost = async (result) => {
+        const linkToUse = result?.url || extractPostLink(result?.raw);
+
+        if (!linkToUse) {
+            console.warn('Deep analysis aborted: no Reddit URL found for result', result);
+            setAnalysisMap(prev => ({
+                ...prev,
+                [result.id]: {
+                    status: 'error',
+                    comments: [],
+                    message: null,
+                    error: 'This result does not include a Reddit link.',
+                }
+            }));
+            return;
+        }
+
+        // Initialize loading state
+        setAnalysisMap(prev => ({
+            ...prev,
+            [result.id]: {
+                status: 'loading',
+                comments: [],
+                message: 'Connecting to Yellowcake...',
+                error: null,
+            }
+        }));
+
+        try {
+            console.log('Starting deep analysis for', linkToUse);
+            const functionUrl = `${supabaseUrl}/functions/v1/yellowcake-post-comments`;
+            const response = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'apikey': supabaseAnonKey,
+                },
+                body: JSON.stringify({ url: linkToUse })
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error('Deep analysis HTTP failure', response.status, errorBody);
+                throw new Error(errorBody || 'Failed to analyze post.');
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                console.error('Deep analysis stream missing body for', linkToUse);
+                throw new Error('No readable stream returned from analysis.');
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+            const collected = [];
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const events = buffer.split('\n\n');
+                buffer = events.pop() || '';
+
+                let fatalError = null;
+                for (const eventBlock of events) {
+                    const lines = eventBlock.split('\n');
+                    let eventName = 'message';
+                    let dataPayload = '';
+
+                    lines.forEach((line) => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return;
+                        if (trimmed.startsWith('event:')) {
+                            eventName = trimmed.slice(6).trim();
+                        } else if (trimmed.startsWith('data:')) {
+                            dataPayload += trimmed.slice(5).trim();
+                        }
+                    });
+
+                    if (!dataPayload) continue;
+
+                    if (eventName === 'chunk') {
+                        try {
+                            const chunkData = JSON.parse(dataPayload);
+                            collected.push(chunkData);
+                            setAnalysisMap(prev => ({
+                                ...prev,
+                                [result.id]: {
+                                    status: 'loading',
+                                    comments: [...collected],
+                                    message: `Found ${collected.length} comment${collected.length === 1 ? '' : 's'}...`,
+                                    error: null,
+                                }
+                            }));
+                        } catch (err) {
+                            console.error('Failed to parse chunk payload', err, dataPayload);
+                        }
+                    } else if (eventName === 'status' || eventName === 'progress') {
+                        try {
+                            const statusPayload = JSON.parse(dataPayload);
+                            if (statusPayload.message) {
+                                setAnalysisMap(prev => ({
+                                    ...prev,
+                                    [result.id]: {
+                                        ...(prev[result.id] || { comments: [] }),
+                                        status: prev[result.id]?.status === 'complete' ? 'complete' : 'loading',
+                                        comments: prev[result.id]?.comments || [],
+                                        message: statusPayload.message,
+                                        error: null,
+                                    }
+                                }));
+                            }
+                        } catch (err) {
+                            console.error('Failed to parse status payload', err);
+                        }
+                    } else if (eventName === 'error') {
+                        try {
+                            const payload = JSON.parse(dataPayload);
+                            fatalError = new Error(payload.error || 'Analysis failed.');
+                        } catch (_err) {
+                            fatalError = new Error(dataPayload);
+                        }
+                        console.error('Deep analysis stream error event', fatalError, dataPayload);
+                        break;
+                    } else if (eventName === 'complete') {
+                        setAnalysisMap(prev => ({
+                            ...prev,
+                            [result.id]: {
+                                status: 'complete',
+                                comments: [...collected],
+                                message: 'Analysis complete',
+                                error: null,
+                            }
+                        }));
+                    }
+                }
+
+                if (fatalError) {
+                    throw fatalError;
+                }
+            }
+
+            setAnalysisMap(prev => ({
+                ...prev,
+                [result.id]: {
+                    ...(prev[result.id] || {}),
+                    status: 'complete',
+                    comments: prev[result.id]?.comments?.length ? prev[result.id].comments : collected,
+                    message: collected.length ? 'Analysis complete' : 'No comments found',
+                    error: null,
+                }
+            }));
+
+            if (!collected.length) {
+                console.warn('Deep analysis completed with zero comments for', linkToUse);
+            }
+        } catch (error) {
+            console.error('Error running deep comment analysis:', error);
+            setAnalysisMap(prev => ({
+                ...prev,
+                [result.id]: {
+                    status: 'error',
+                    comments: [],
+                    message: null,
+                    error: error.message || 'Failed to analyze post.',
+                }
+            }));
+        }
+    };
+
     // Convert scraped results to display format
     const results = cachedResults.length > 0 
         ? cachedResults.map((result, index) => {
-            // Extract post link from the result object
-            const postLink = result.post_link || '';
+            const postLink = extractPostLink(result);
+            const displayText = postLink || safeStringify(result) || 'No Reddit link detected.';
             return {
                 id: index + 1,
                 title: `Reddit Post #${index + 1}`,
-                text: postLink,
-                url: postLink
+                text: displayText,
+                url: postLink,
+                raw: result
             };
         })
         : [
@@ -217,7 +540,15 @@ function ResultsPage() {
 
                     <div className="results-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {results.map(result => (
-                            <ResultSlice key={result.id} title={result.title} text={result.text} onAdd={handleAddToProject} />
+                            <ResultSlice
+                                key={result.id}
+                                title={result.title}
+                                text={result.text}
+                                url={result.url}
+                                onAdd={handleAddToProject}
+                                onAnalyze={() => handleAnalyzePost(result)}
+                                analysis={analysisMap[result.id]}
+                            />
                         ))}
                     </div>
 
