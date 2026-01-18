@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_PROMPT = `Return exactly 3 items. Output each as {"author":"USERNAME","comment_summary":"<240 characters explaining the hardship","pain_point":"short label of the payment processor issue","permalink":"direct comment link"}. Surface only real Reddit comments from this thread that highlight frustrations with payment processors (Stripe, PayPal, Square, etc.). Do not fabricate usernames or details.`;
+const DEFAULT_PROMPT = `Return exactly 3 items that highlight pain points. Output each as "comment_text"`;
 
 const toOldReddit = (rawUrl: string): string => {
   try {
