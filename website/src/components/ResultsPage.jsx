@@ -370,19 +370,31 @@ function ResultsPage() {
                 });
 
                 try {
-                    const { data, error } = await supabase.functions.invoke('fetch-reddit-post', {
-                        body: { url }
+                    // Use local proxy or Vercel function
+                    const response = await fetch('/api/reddit-meta', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
                     });
 
-                    if (error) throw error;
+                    if (!response.ok) {
+                        throw new Error(`Proxy error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
 
                     setCachedResults(prev => {
                         const update = [...prev];
                         // Preserve original keys but overwrite with detailed data
                         update[index] = {
                             ...update[index],
-                            ...data,
-                            body: data.selftext || data.title, // Fallback if no body
+                            title: data.subreddit ? `r/${data.subreddit}` : update[index].title,
+                            postTitle: data.title,
+                            text: data.text || data.title,
+                            score: data.upvotes,
+                            comments: data.comments,
+                            date: data.date,
+                            body: data.text || update[index].body,
                             hydrated: true,
                             hydrating: false
                         };
