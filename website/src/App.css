@@ -50,10 +50,10 @@
 /* Removed duplicate keyframe */
 
 .hero-text {
-  font-size: 4.5rem;
-  /* Massive, Apple-style headline */
+  font-size: 3.5rem;
+  /* Reduced for better balance */
   font-weight: 800;
-  /* Extra bold */
+  /* Keep it bold */
   color: var(--text-main);
   text-align: center;
   margin-bottom: 0.5rem;
@@ -62,8 +62,8 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -0.04em;
-  /* Very tight tracking for that premium look */
+  letter-spacing: -0.03em;
+  /* Slightly less tight at this size */
   line-height: 1.1;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   text-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);

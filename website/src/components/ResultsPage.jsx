@@ -87,41 +87,147 @@ const ResultSlice = ({ title, text, url, onAdd, onAnalyze, analysis }) => {
         return `https://old.reddit.com${link}`;
     };
 
+    const getSubreddit = (link) => {
+        if (!link) return 'r/Unknown';
+        const match = link.match(/reddit\.com\/r\/([^/]+)/i);
+        return match ? `r/${match[1]}` : 'r/reddit';
+    };
+
+    const getPostTitle = (link) => {
+        if (!link) return null;
+        const match = link.match(/comments\/[^/]+\/([^/]+)/i);
+        if (match && match[1]) {
+            // Replace hyphens/underscores with spaces and decode
+            let clean = decodeURIComponent(match[1]).replace(/[_-]/g, ' ');
+            // Capitalize first letter
+            clean = clean.charAt(0).toUpperCase() + clean.slice(1);
+            return clean;
+        }
+        return null; // Fallback if regular link
+    };
+
+    const subreddit = getSubreddit(url);
+    const derivedTitle = getPostTitle(url);
+
+    // If we have a derived title, use it. Otherwise use the passed text (if it's not just the url). 
+    // If text IS the url, and we couldn't derive title, we show url? 
+    // The user wants "replace the link on each box with the title".
+    // "add a ... at the end of each incase title isnt full"
+
+    let displayContent = text;
+    if (derivedTitle) {
+        displayContent = derivedTitle;
+    } else if (title.startsWith('Reddit Post')) {
+        // Fallback: truncate text if it's long
+        displayContent = text.length > 150 ? text.substring(0, 150) : text;
+    }
+
+    // Always add ... for style as requested "incase title isnt full" - mostly for derived titles
+    if (derivedTitle && !displayContent.endsWith('...')) {
+        displayContent += '...';
+    }
+
     return (
         <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
+            background: '#18181b', // Opaque dark background
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '12px',
-            padding: '1rem',
+            padding: '1.5rem',
             width: '100%',
             marginBottom: '0.8rem',
-            transition: 'transform 0.2s ease, background 0.2s ease',
-            cursor: 'pointer'
+            transition: 'transform 0.2s ease, border-color 0.2s ease',
+            cursor: 'default',
+            position: 'relative',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}
             className="result-slice"
             onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                e.currentTarget.style.borderColor = 'rgba(4, 141, 123, 0.5)';
                 e.currentTarget.style.transform = 'translateY(-2px)';
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
                 e.currentTarget.style.transform = 'translateY(0)';
             }}
         >
-            <h3 style={{ margin: '0 0 0.3rem 0', color: '#ececf1', fontSize: '1rem' }}>{title}</h3>
-            <p style={{ margin: '0 0 0.8rem 0', color: '#9da3ae', fontSize: '0.9rem', wordBreak: 'break-all' }}>{text}</p>
+            {/* Top Right Open Link Button */}
+            {hasLink && (
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        position: 'absolute',
+                        top: '1rem',
+                        right: '1rem',
+                        color: '#9da3ae',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        gap: '6px'
+                    }}
+                    title="Open on Reddit"
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#fff';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.color = '#9da3ae';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    }}
+                >
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Open Link</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M15 3H21V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                </a>
+            )}
+
+            <h3 style={{
+                margin: '0 0 0.5rem 0',
+                color: '#048d7b', /* Greenish accent for subreddit */
+                fontSize: '0.85rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontWeight: 700
+            }}>
+                {subreddit.toUpperCase()}
+            </h3>
+
+            {/* Main Content / Title */}
+            <p style={{ margin: '0 0 1rem 0', color: '#ececf1', fontSize: '1rem', lineHeight: '1.5', fontWeight: 500 }}>
+                {displayContent}
+            </p>
+
+            {/* Content Preview/Body */}
+            <div style={{ color: '#9da3ae', fontSize: '0.9rem', lineHeight: '1.6', wordBreak: 'break-word', marginBottom: '1rem' }}>
+                {/* If text was used as title, show nothing here, else show text */}
+                {title.startsWith('Reddit Post') ? null : text}
+            </div>
+
+            {/* Analyze Button */}
             <div style={{ display: 'flex', gap: '10px' }}>
                 <button style={{
                     background: hasLink ? 'rgba(4, 141, 123, 0.2)' : 'rgba(255, 255, 255, 0.08)',
                     border: hasLink ? '1px solid rgba(4, 141, 123, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
                     color: hasLink ? '#048d7b' : '#6b6b7c',
-                    padding: '6px 16px',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
                     cursor: hasLink && !isLoading ? 'pointer' : 'not-allowed',
                     fontWeight: 600,
                     transition: 'all 0.2s',
-                    opacity: hasLink ? 1 : 0.7
+                    opacity: hasLink ? 1 : 0.7,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                 }}
                     disabled={!hasLink || isLoading}
                     onClick={(e) => {
@@ -130,34 +236,32 @@ const ResultSlice = ({ title, text, url, onAdd, onAnalyze, analysis }) => {
                             onAnalyze();
                         }
                     }}
-                >
-                    {analyzeLabel}
-                </button>
-                <button style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#c5c5d2',
-                    padding: '6px 16px',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    transition: 'all 0.2s'
-                }}
                     onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.color = 'white';
+                        if (hasLink && !isLoading) {
+                            e.currentTarget.style.background = 'rgba(4, 141, 123, 0.3)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }
                     }}
                     onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                        e.currentTarget.style.color = '#c5c5d2';
-                    }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onAdd(title, text);
+                        if (hasLink && !isLoading) {
+                            e.currentTarget.style.background = 'rgba(4, 141, 123, 0.2)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }
                     }}
                 >
-                    + Add to Project
+                    {isLoading ? (
+                        <>
+                            <span className="spinner-small"></span>
+                            Analyzing...
+                        </>
+                    ) : (
+                        <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            Analyze
+                        </>
+                    )}
                 </button>
             </div>
 
@@ -483,7 +587,7 @@ function ResultsPage() {
     };
 
     // Convert scraped results to display format
-    const results = cachedResults.length > 0 
+    const results = cachedResults.length > 0
         ? cachedResults.map((result, index) => {
             const postLink = extractPostLink(result);
             const displayText = postLink || safeStringify(result) || 'No Reddit link detected.';
