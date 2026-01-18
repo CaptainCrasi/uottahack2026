@@ -346,76 +346,7 @@ function ResultsPage() {
     // Logic above: scrapedResults change triggers it. What if we reload and scrapedResults is empty but cachedResults is populated?
     // We need an effect that runs once on mount or when cachedResults is initially set.
 
-    // Let's separate hydration effect
-    useEffect(() => {
-        if (cachedResults.length === 0) return;
 
-        cachedResults.forEach((result, index) => {
-            const url = result.post_link || result.url;
-            // Check if already hydrated or hydrating
-            if (!url || result.hydrated || result.hydrating) return;
-
-            // Only fetch if it looks like a real reddit link
-            if (!url.includes('reddit.com')) return;
-
-            // Trigger fetch
-            (async () => {
-                // Set hydrating flag
-                setCachedResults(prev => {
-                    // Safe check to avoid setting if already hydrating in latest state
-                    if (prev[index].hydrating) return prev;
-                    const update = [...prev];
-                    update[index] = { ...update[index], hydrating: true };
-                    return update;
-                });
-
-                try {
-                    // Use local proxy or Vercel function
-                    const response = await fetch('/api/reddit-meta', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Proxy error: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-
-                    setCachedResults(prev => {
-                        const update = [...prev];
-                        // Preserve original keys but overwrite with detailed data
-                        update[index] = {
-                            ...update[index],
-                            title: data.subreddit ? `r/${data.subreddit}` : update[index].title,
-                            postTitle: data.title,
-                            text: data.text || data.title,
-                            score: data.upvotes,
-                            comments: data.comments,
-                            date: data.date,
-                            body: data.text || update[index].body,
-                            hydrated: true,
-                            hydrating: false
-                        };
-                        if (typeof window !== 'undefined') {
-                            window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(update));
-                        }
-                        return update;
-                    });
-
-                } catch (e) {
-                    console.warn('Hydration failed for', url, e);
-                    setCachedResults(prev => {
-                        const update = [...prev];
-                        update[index] = { ...update[index], hydrating: false, hydrated: true }; // Stop trying
-                        return update;
-                    });
-                }
-            })();
-        });
-    }, [cachedResults.length]); // Only run if list length changes (new items) or initial load. 
-    // Note: updating state inside doesn't change length, so this is safe.
 
     // Original effect for loading scrapedResults into cache
     useEffect(() => {
