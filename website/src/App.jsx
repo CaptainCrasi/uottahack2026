@@ -98,7 +98,7 @@ function App() {
       />
 
       <main className="main-content">
-        <h1 className="hero-text">Audience Discovery</h1>
+        <h1 className="hero-text">Customer Discovery</h1>
 
         <div className="by-line">
           <span style={{ color: '#048d7b', marginRight: '8px', fontSize: '1rem', fontWeight: 500 }}>by</span>
