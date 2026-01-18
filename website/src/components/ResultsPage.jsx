@@ -272,17 +272,23 @@ function ResultsPage() {
                 try {
                     // Use local proxy or Vercel function
                     // Using relative path so it works in both dev (via vite proxy) and prod (on Vercel domain)
+                    console.log(`[Hydration] Fetching /api/reddit-meta for: ${url}`);
                     const response = await fetch('/api/reddit-meta', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url })
                     });
     
+                    console.log(`[Hydration] Response status: ${response.status}`);
+                    
                     if (!response.ok) {
-                        throw new Error(`Proxy error: ${response.status}`);
+                        const errorText = await response.text();
+                        console.error(`[Hydration] Error response body:`, errorText);
+                        throw new Error(`Proxy error: ${response.status} - ${errorText}`);
                     }
     
                     const data = await response.json();
+                    console.log(`[Hydration] Success for ${url}:`, data.title);
     
                     // Merge data
                     setCachedResults(prev => {
