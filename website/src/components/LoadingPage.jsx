@@ -39,6 +39,7 @@ function LoadingPage() {
         return [];
     });
     const [logs, setLogs] = useState([]);
+    const [logsOpen, setLogsOpen] = useState(false);
     const [hasError, setHasError] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
@@ -57,7 +58,7 @@ function LoadingPage() {
     useEffect(() => {
         const generateAndScrape = async () => {
             const inputText = location.state?.inputText;
-            
+
             if (!inputText) {
                 addLog('No input text provided, redirecting to home', 'error');
                 setHasError(true);
@@ -73,7 +74,7 @@ function LoadingPage() {
                 // Step 1: Generate the prompt
                 addLog('Starting prompt generation...', 'info');
                 setStatusMessage('Generating Reddit scrape prompt...');
-                
+
                 addLog(`Calling openrouter-call with input: "${inputText}"`, 'info');
                 const functionUrl = `${supabaseUrl}/functions/v1/openrouter-call`;
                 const functionResponse = await fetch(functionUrl, {
@@ -110,10 +111,10 @@ function LoadingPage() {
 
                 // Step 2: Start streaming scrape with the generated prompt
                 addLog('Starting Yellowcake scrape stream...', 'info');
-                
+
                 const streamUrl = `${supabaseUrl}/functions/v1/yellowcake-scrape`;
                 addLog(`Stream URL: ${streamUrl}`, 'info');
-                
+
                 const streamResponse = await fetch(streamUrl, {
                     method: 'POST',
                     headers: {
@@ -143,11 +144,11 @@ function LoadingPage() {
 
                 addLog('Stream reader initialized, starting to read chunks...', 'info');
                 setStatusMessage('Searching Reddit...');
-                
+
                 let buffer = '';
                 while (true) {
                     const { done, value } = await reader.read();
-                    
+
                     if (done) {
                         addLog('Stream reading complete', 'success');
                         break;
@@ -236,7 +237,7 @@ function LoadingPage() {
 
                 // Navigate to results with the collected data
                 addLog('Navigating to results page...', 'success');
-                
+
                 // Console log all logs before navigating
                 console.log('=== FINAL SESSION LOGS ===');
                 logs.forEach(log => {
@@ -247,16 +248,16 @@ function LoadingPage() {
                 if (typeof window !== 'undefined' && finalResults.length > 0) {
                     window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(finalResults));
                 }
-                
+
                 setTimeout(() => {
-                    navigate('/results', { 
-                        state: { 
-                            prompt: data.prompt, 
+                    navigate('/results', {
+                        state: {
+                            prompt: data.prompt,
                             inputText,
                             results: finalResults,
                             projectId: projectId,
                             logs: logs
-                        } 
+                        }
                     });
                 }, 1000);
             } catch (err) {
@@ -301,74 +302,117 @@ function LoadingPage() {
 
                 <Spinner message={statusMessage} />
 
-                {generatedPrompt && (
-                    <div style={{ maxWidth: '800px', margin: '20px auto', backgroundColor: '#444654', padding: '20px', borderRadius: '8px', textAlign: 'left' }}>
-                        <h3 style={{ marginTop: 0, color: '#fff' }}>Generated Prompt:</h3>
-                        <p style={{ color: '#e5e5f0', lineHeight: 1.6 }}>{generatedPrompt}</p>
-                    </div>
-                )}
 
-                {/* Log Console */}
-                {logs.length > 0 && (
-                    <div style={{ 
-                        maxWidth: '900px', 
-                        margin: '20px auto', 
-                        backgroundColor: '#1e1e1e', 
-                        padding: '15px', 
-                        borderRadius: '8px', 
-                        textAlign: 'left',
-                        maxHeight: '400px',
+
+                {/* Log Toggle Button */}
+                <button
+                    onClick={() => setLogsOpen(!logsOpen)}
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '20px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: '#9da3ae',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        zIndex: 100,
+                        transition: 'all 0.2s',
+                        backdropFilter: 'blur(4px)'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                        e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.color = '#9da3ae';
+                    }}
+                >
+                    {logsOpen ? 'Hide Logs' : 'View Logs'}
+                </button>
+
+                {/* Log Sidebar */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    right: logsOpen ? 0 : '-400px',
+                    width: '400px',
+                    height: '100%',
+                    background: '#18181b', // Dark background matching theme
+                    borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.5)',
+                    transition: 'right 0.3s ease-in-out',
+                    zIndex: 99,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '20px',
+                    boxSizing: 'border-box'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '15px',
+                        paddingBottom: '15px',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                        marginTop: '60px' // Space for header if needed, or just top spacing
+                    }}>
+                        <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem' }}>System Logs</h3>
+                        <button
+                            onClick={() => setLogs([])}
+                            style={{
+                                background: 'transparent',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                color: '#9da3ae',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.7rem'
+                            }}
+                        >
+                            Clear
+                        </button>
+                    </div>
+
+                    <div style={{
+                        flex: 1,
                         overflowY: 'auto',
                         fontFamily: 'monospace',
-                        fontSize: '0.85rem',
-                        border: '1px solid #333'
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
                     }}>
-                        <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            marginBottom: '10px',
-                            paddingBottom: '10px',
-                            borderBottom: '1px solid #333'
-                        }}>
-                            <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem' }}>System Logs</h3>
-                            <button 
-                                onClick={() => setLogs([])}
-                                style={{
-                                    background: 'rgba(255, 255, 255, 0.1)',
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                                    color: '#fff',
-                                    padding: '4px 12px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.75rem'
-                                }}
-                            >
-                                Clear
-                            </button>
-                        </div>
+                        {logs.length === 0 && (
+                            <p style={{ color: '#555', textAlign: 'center', marginTop: '2rem' }}>No logs yet...</p>
+                        )}
                         {logs.map((log, index) => (
-                            <div key={index} style={{ 
-                                marginBottom: '4px',
-                                color: log.type === 'error' ? '#ff6b6b' : 
-                                       log.type === 'success' ? '#51cf66' : 
-                                       log.type === 'debug' ? '#868e96' : '#c5c5d2',
-                                lineHeight: 1.4
+                            <div key={index} style={{
+                                color: log.type === 'error' ? '#ff6b6b' :
+                                    log.type === 'success' ? '#51cf66' :
+                                        log.type === 'debug' ? '#868e96' : '#c5c5d2',
+                                lineHeight: 1.4,
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                                paddingBottom: '4px'
                             }}>
-                                <span style={{ color: '#666', marginRight: '8px' }}>[{log.timestamp}]</span>
-                                <span style={{ 
-                                    color: log.type === 'error' ? '#ff6b6b' : 
-                                           log.type === 'success' ? '#51cf66' : '#999',
+                                <span style={{ color: '#555', marginRight: '8px', fontSize: '0.7rem' }}>[{log.timestamp}]</span>
+                                <span style={{
+                                    color: log.type === 'error' ? '#ff6b6b' :
+                                        log.type === 'success' ? '#51cf66' : '#999',
                                     fontWeight: 600,
-                                    marginRight: '8px'
+                                    marginRight: '6px',
+                                    fontSize: '0.75rem'
                                 }}>
-                                    [{log.type.toUpperCase()}]
+                                    {log.type.toUpperCase()}
                                 </span>
                                 {log.message}
                             </div>
                         ))}
                     </div>
-                )}
+                </div>
 
                 {hasError && (
                     <div style={{

@@ -562,53 +562,53 @@ function ResultsPage() {
         : [
             {
                 id: 1,
-                title: "r/ArtistLounge",
-                postTitle: "Why is there no good scheduler for artists?",
-                text: "Analyzing subreddit discussions reveals a significant demand for automated social media scheduling tools specifically for artists. I've been looking for something that handles Instagram sizes correctly but no luck.",
-                url: "https://reddit.com/r/ArtistLounge",
-                comments: 42,
-                score: 156,
-                date: "10/24/2023"
+                title: "r/iPhone13Mini",
+                postTitle: "Suggest me best minimal case.",
+                text: "A highly upvoted request for cases that offer protection without the \"brick-like\" feel, validating the market desire for your \"lightweight\" and \"super shock resistant\" combination.",
+                url: "https://www.reddit.com/r/iPhone13Mini/comments/1b8x9z1/suggest_me_best_minimal_case/",
+                comments: 82,
+                score: 151,
+                date: "March 2025"
             },
             {
                 id: 2,
-                title: "r/smallbusiness",
-                postTitle: "CRM for solo founders?",
-                text: "Users in r/smallbusiness are frequently complaining about the complexity of existing CRM solutions for solo entrepreneurs. Hubspot is too expensive and Excel is too messy.",
-                url: "https://reddit.com/r/smallbusiness",
-                comments: 89,
-                score: 340,
-                date: "11/02/2023"
+                title: "r/BuyItForLife",
+                postTitle: "A phone case that works across models?",
+                text: "A user expresses frustration with the wastefulness of buying new plastic cases for every slight dimension change, specifically asking for a durable, adjustable solution that can adapt to different phone sizes.",
+                url: "https://www.reddit.com/r/BuyItForLife/comments/1ieiwof/a_phone_case_that_works_across_models/",
+                comments: 20,
+                score: 45,
+                date: "January 31, 2025"
             },
             {
                 id: 3,
-                title: "r/productivity",
-                postTitle: "Distraction free writing app needed",
-                text: "There is a growing trend in r/productivity asking for a distraction-free writing app that integrates directly with WordPress.",
-                url: "https://reddit.com/r/productivity",
-                comments: 12,
-                score: 45,
-                date: "Yesterday"
+                title: "r/iPhone15ProMax",
+                postTitle: "Am I the only one that can't find a case that looks good with this phone?",
+                text: "A thread dedicated to the difficulty of finding cases that balance protection with high-quality materials and aesthetics, highlighting a gap in the market for \"good looking\" options.",
+                url: "https://www.reddit.com/r/iPhone15ProMax/comments/1d3x8y2/am_i_the_only_one_that_cant_find_a_case_that/",
+                comments: 43,
+                score: 33,
+                date: "June 2025"
             },
             {
                 id: 4,
-                title: "r/pcgaming",
-                postTitle: "Launcher fatigue is real",
-                text: "Gamers in r/pcgaming are looking for a unified launcher that is lightweight and open-source, as current options are bloated.",
-                url: "https://reddit.com/r/pcgaming",
-                comments: 231,
-                score: 1205,
-                date: "2 days ago"
+                title: "r/iphone",
+                postTitle: "iPhone 17 Pro Max users, after a while have you felt like the size and weight is just too much?",
+                text: "Users discuss the physical fatigue of using large, modern flagship phones, with many complaining that standard protective cases add too much bulk and weight, driving them to risk going \"caseless.\"",
+                url: "https://www.reddit.com/r/iphone/comments/1nz6jcs/iphone_17_pro_max_users_after_a_while_have_you/",
+                comments: 100,
+                score: 25,
+                date: "October 6, 2025"
             },
             {
                 id: 5,
-                title: "r/homeautomation",
-                postTitle: "Offline voice assistant?",
-                text: "Review of r/homeautomation suggests a gap for a privacy-focused, offline-first voice assistant for smart home control.",
-                url: "https://reddit.com/r/homeautomation",
-                comments: 56,
-                score: 210,
-                date: "1 week ago"
+                title: "r/galaxyzflip",
+                postTitle: "Buyer beware: Casetify cases don't fit",
+                text: "A customer details a \"pain point\" where a premium, expensive case failed to fit the phone securely (lifting off the device), proving that even high-end brands struggle with precise fitment.",
+                url: "https://www.reddit.com/r/galaxyzflip/comments/1mn0hj9/buyer_beware_casetify_cases_dont_fit/",
+                comments: 15,
+                score: 10,
+                date: "August 11, 2025"
             },
         ];
 
