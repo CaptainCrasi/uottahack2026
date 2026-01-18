@@ -50,22 +50,46 @@
 /* Removed duplicate keyframe */
 
 .hero-text {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 4.5rem;
+  /* Massive, Apple-style headline */
+  font-weight: 800;
+  /* Extra bold */
   color: var(--text-main);
   text-align: center;
-  margin-bottom: 0.3rem;
-  background: linear-gradient(to right, #fff, #b4b4b4);
+  margin-bottom: 0.5rem;
+  background: linear-gradient(180deg, #ffffff 0%, #b4b4b4 100%);
+  /* Stronger contrast gradient */
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  letter-spacing: -0.04em;
+  /* Very tight tracking for that premium look */
+  line-height: 1.1;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  /* Subtle depth */
 }
 
 .by-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
-  opacity: 0.9;
+  margin-bottom: 2rem;
+  /* More breathing room */
+  opacity: 0.8;
+}
+
+.marketsnipe-logo {
+  height: 24px;
+  vertical-align: middle;
+  filter: brightness(0.9);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+}
+
+.marketsnipe-logo:hover {
+  filter: brightness(1.2) drop-shadow(0 0 12px rgba(4, 141, 123, 0.6));
+  transform: scale(1.05);
 }
 
 .input-centering-container {
