@@ -74,18 +74,13 @@ function App() {
       setIsModalOpen(true);
       return;
     }
-    
+
     // Navigate to loading page with the input text
     navigate('/loading', { state: { inputText: text } });
   };
 
   const openMarketGapTool = () => {
-    if (!user) {
-      setModalMode('signup');
-      setIsModalOpen(true);
-      return;
-    }
-    navigate('/loading');
+    navigate('/explore');
   };
 
   return (

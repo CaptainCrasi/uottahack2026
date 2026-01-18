@@ -6,6 +6,7 @@ import LoadingPage from './components/LoadingPage.jsx'
 import ResultsPage from './components/ResultsPage.jsx'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
+import Explore from './components/Explore.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<App />} />
           <Route path="/loading" element={<LoadingPage />} />
           <Route path="/results" element={<ResultsPage />} />
+          <Route path="/explore" element={<Explore />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
