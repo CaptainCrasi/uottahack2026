@@ -23,13 +23,17 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ error: "URL is required" });
 
   try {
+      // Basic random delay to avoid Thundering Herd on serverless cold starts hitting reddit simultaneously
+      // Note: Serverless functions cannot easily share global rate limit state without Redis.
+      // This delay helps slightly with burstiness but is not a global rate limiter.
+      const jitter = Math.floor(Math.random() * 2000) + 500; // 500ms - 2500ms delay
+      await new Promise(r => setTimeout(r, jitter));
+      
       // Handle URL parsing to safely add .json extension
       const urlObj = new URL(url);
-      // Remove trailing slash from pathname if present
       if (urlObj.pathname.endsWith('/')) {
           urlObj.pathname = urlObj.pathname.slice(0, -1);
       }
-      // Add .json extension
       urlObj.pathname += '.json';
       const jsonUrl = urlObj.toString();
 
@@ -37,7 +41,9 @@ export default async function handler(req, res) {
 
       const r = await fetch(jsonUrl, {
           headers: { 
-              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 
+              // Use a descriptive User-Agent
+              "User-Agent": "web:uottahack2026-analysis:v1.0.0 (by /u/CaptainCrasi)",
+              "Accept": "application/json"
           },
       });
 
