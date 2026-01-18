@@ -1,5 +1,9 @@
 import fetch from "node-fetch";
 
+// Simple in-memory cache for warm executions of serverless function
+// Note: This does not persist across cold starts.
+const memoryCache = new Map();
+
 export default async function handler(req, res) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Credentials', true)
@@ -21,6 +25,11 @@ export default async function handler(req, res) {
   const { url } = req.body;
 
   if (!url) return res.status(400).json({ error: "URL is required" });
+
+  if (memoryCache.has(url)) {
+      console.log(`Serving from internal cache: ${url}`);
+      return res.status(200).json(memoryCache.get(url));
+  }
 
   try {
       // Basic random delay to avoid Thundering Herd on serverless cold starts hitting reddit simultaneously
@@ -73,6 +82,7 @@ export default async function handler(req, res) {
       };
 
       console.log(`Success: ${post.title.substring(0, 30)}...`);
+      memoryCache.set(url, result);
       return res.status(200).json(result);
 
   } catch (e) {

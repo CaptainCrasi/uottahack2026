@@ -14,6 +14,7 @@ app.use((req, res, next) => {
 
 // Simple in-memory queue for rate limiting
 const requestQueue = [];
+const requestCache = new Map(); // Cache results: URL -> Result Object
 let isProcessing = false;
 const RATE_LIMIT_DELAY = 2500; // 2.5 seconds between requests (Heavy rate limiting)
 
@@ -22,6 +23,17 @@ const processQueue = async () => {
     
     isProcessing = true;
     const { url, resolve, reject } = requestQueue.shift();
+
+    // Check cache again just in case (though we check before queueing usually)
+    if (requestCache.has(url)) {
+        console.log(`Serving from cache (queue-time check): ${url}`);
+        resolve(requestCache.get(url));
+        // We still respect the rate limit delay even for cached hits? 
+        // No, cached hits can be instant. But we need to reset isProcessing.
+        isProcessing = false;
+        processQueue();
+        return;
+    }
 
     try {
         console.log(`Processing ${url} (Queue size: ${requestQueue.length})`);
@@ -63,6 +75,7 @@ const processQueue = async () => {
                     subreddit: post.subreddit
                 };
                 console.log(`Success: ${post.title.substring(0, 30)}...`);
+                requestCache.set(url, result); // Cache result using original URL
                 resolve(result);
             }
         }
@@ -82,6 +95,11 @@ app.post("/api/reddit-meta", async (req, res) => {
     const { url } = req.body;
 
     if (!url) return res.status(400).json({ error: "URL is required" });
+
+    if (requestCache.has(url)) {
+        console.log(`Serving from cache: ${url}`);
+        return res.json(requestCache.get(url));
+    }
 
     // Add to queue
     new Promise((resolve, reject) => {

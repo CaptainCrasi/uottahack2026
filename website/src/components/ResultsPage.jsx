@@ -245,6 +245,8 @@ function ResultsPage() {
         }
 
         // Fetch detailed data for each result
+        console.log("Checking for hydration needed. Cached Items:", cachedResults.length);
+
         const hydrateResults = async () => {
             // Only hydrate if we have results and they haven't been hydrated yet (avoid infinite loop or re-fetching)
             // We can check if a result needs hydration if it lacks 'hydrated' flag or specific fields
@@ -254,99 +256,69 @@ function ResultsPage() {
             const source = scrapedResults.length > 0 ? scrapedResults : cachedResults;
             if (source.length === 0) return;
 
-            const newResults = [...source];
-            let hasUpdates = false;
-
-            for (let i = 0; i < newResults.length; i++) {
-                const result = newResults[i];
+            cachedResults.forEach(async (result, index) => {
                 const url = result.post_link || result.url;
+                if (!url || result.hydrated || result.hydrating) return;
+    
+                console.log(`Triggering hydration for item ${index}: ${url}`);
 
-                // Skip if no URL or already looks like it has full data (e.g. selftext is populated and not generic)
-                // Or if we already marked it as hydrated
-                if (!url || result.hydrated === true) continue;
-
+                // Mark as hydrating to prevent duplicates
+                setCachedResults(prev => {
+                    const update = [...prev];
+                    update[index] = { ...update[index], hydrating: true };
+                    return update;
+                });
+    
                 try {
-                    // Mark as hydrating to prevent double fetch if we re-run
-                    newResults[i].hydrated = 'loading'; // Temporary state? or just don't set true yet. 
-                    // Actually, better to just fire simpler promises? 
-                    // Let's do it sequentially for now to be safe, or parallel
-
-                    // We update state individually to show progress?
-                    // Or batch? Let's update state individually for better UX
-                } catch (e) {
-                    // ignore
-                }
-            }
-        };
-
-        // Actually, a better pattern:
-        // Iterate through cachedResults. If any item needs hydration, trigger a fetch for it.
-        // Update the item in setCachedResults when done.
-
-        cachedResults.forEach(async (result, index) => {
-            const url = result.post_link || result.url;
-            if (!url || result.hydrated || result.hydrating) return;
-
-            // Mark as hydrating to prevent duplicates
-            setCachedResults(prev => {
-                const update = [...prev];
-                update[index] = { ...update[index], hydrating: true };
-                return update;
-            });
-
-            try {
-                // Use local proxy or Vercel function
-                // Using relative path so it works in both dev (via vite proxy) and prod (on Vercel domain)
-                const response = await fetch('/api/reddit-meta', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Proxy error: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                // Merge data
-                setCachedResults(prev => {
-                    const update = [...prev];
-                    update[index] = {
-                        ...update[index],
-                        title: data.subreddit ? `r/${data.subreddit}` : update[index].title,
-                        postTitle: data.title,
-                        text: data.text || data.title, // text (selftext) from proxy
-                        score: data.upvotes,
-                        comments: data.comments,
-                        date: data.date,
-                        body: data.text || update[index].body,
-                        hydrated: true,
-                        hydrating: false
-                    };
-                    // Update storage too
-                    if (typeof window !== 'undefined') {
-                        window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(update));
+                    // Use local proxy or Vercel function
+                    // Using relative path so it works in both dev (via vite proxy) and prod (on Vercel domain)
+                    const response = await fetch('/api/reddit-meta', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
+                    });
+    
+                    if (!response.ok) {
+                        throw new Error(`Proxy error: ${response.status}`);
                     }
-                    return update;
-                });
-            } catch (err) {
-                console.warn(`Failed to hydrate result ${index}:`, err);
-                setCachedResults(prev => {
-                    const update = [...prev];
-                    update[index] = { ...update[index], hydrating: false, hydrated: true }; // Mark hydrated so we don't retry forever
-                    return update;
-                });
-            }
-        });
+    
+                    const data = await response.json();
+    
+                    // Merge data
+                    setCachedResults(prev => {
+                        const update = [...prev];
+                        update[index] = {
+                            ...update[index],
+                            title: data.subreddit ? `r/${data.subreddit}` : update[index].title,
+                            postTitle: data.title,
+                            text: data.text || data.title, // text (selftext) from proxy
+                            score: data.upvotes,
+                            comments: data.comments,
+                            date: data.date,
+                            body: data.text || update[index].body,
+                            hydrated: true,
+                            hydrating: false
+                        };
+                        // Update storage too
+                        if (typeof window !== 'undefined') {
+                            window.sessionStorage.setItem('yellowcake_chunk_cache', JSON.stringify(update));
+                        }
+                        return update;
+                    });
+                } catch (err) {
+                    console.warn(`Failed to hydrate result ${index}:`, err);
+                    setCachedResults(prev => {
+                        const update = [...prev];
+                        update[index] = { ...update[index], hydrating: false, hydrated: true }; // Mark hydrated so we don't retry forever
+                        return update;
+                    });
+                }
+            });
+        };
+        
+        hydrateResults();
 
-    }, [scrapedResults.length]); // Dependencies? We want to run this when we load the page or new results come in. 
-    // Ideally we depend on cachedResults but that causes infinite loop if we update it.
-    // So we rely on the initial load logic or a specific triggering effect.
-    // Logic above: scrapedResults change triggers it. What if we reload and scrapedResults is empty but cachedResults is populated?
-    // We need an effect that runs once on mount or when cachedResults is initially set.
-
-
+    }, [scrapedResults.length, cachedResults.length]); // Updated dependency array to trigger on reload/cache load
 
     // Original effect for loading scrapedResults into cache
     useEffect(() => {
