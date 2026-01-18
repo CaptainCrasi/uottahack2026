@@ -295,8 +295,9 @@ function ResultsPage() {
             });
 
             try {
-                // Use local proxy instead of Supabase function
-                const response = await fetch('http://localhost:3001/api/reddit-meta', {
+                // Use local proxy or Vercel function
+                // Using relative path so it works in both dev (via vite proxy) and prod (on Vercel domain)
+                const response = await fetch('/api/reddit-meta', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
