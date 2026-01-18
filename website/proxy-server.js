@@ -18,15 +18,22 @@ app.post("/api/reddit-meta", async (req, res) => {
     if (!url) return res.status(400).json({ error: "URL is required" });
 
     try {
-        // Ensure URL ends in slash before adding .json, or handle existing logic
-        // The user example: url.replace(/\/?$/, "/") + ".json"; 
-        // This ensures it ends in /.json which is safe for reddit
-        const jsonUrl = url.replace(/\/$/, "") + ".json";
+        // Handle URL parsing to safely add .json extension
+        const urlObj = new URL(url);
+        // Remove trailing slash from pathname if present
+        if (urlObj.pathname.endsWith('/')) {
+            urlObj.pathname = urlObj.pathname.slice(0, -1);
+        }
+        // Add .json extension
+        urlObj.pathname += '.json';
+        const jsonUrl = urlObj.toString();
 
         console.log(`Fetching: ${jsonUrl}`);
 
         const r = await fetch(jsonUrl, {
-            headers: { "User-Agent": "marketsnipe/1.0" },
+            headers: { 
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 
+            },
         });
 
         if (!r.ok) {
@@ -47,6 +54,7 @@ app.post("/api/reddit-meta", async (req, res) => {
             date: new Date(post.created_utc * 1000).toLocaleDateString(), // Format as date string for UI
             title: post.title,
             text: post.selftext,
+            url: post.url,
             upvotes: post.ups,
             comments: post.num_comments,
             permalink: `https://www.reddit.com${post.permalink}`,
