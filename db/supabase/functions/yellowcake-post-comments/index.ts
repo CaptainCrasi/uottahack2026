@@ -41,7 +41,8 @@ serve(async (req) => {
 
     const body = await req.json();
     const url = typeof body?.url === "string" ? body.url : "";
-    const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+    let prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+    const inputText = typeof body?.inputText === "string" ? body.inputText.trim() : "";
 
     if (!url) {
       console.error("No URL provided to yellowcake-post-comments");
@@ -52,6 +53,40 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
+    }
+
+    // specific logic: if inputText is provided, generate a prompt using openrouter-call
+    if (inputText && !prompt) {
+        try {
+            console.log("Generating prompt via openrouter-call for input:", inputText);
+            const supabaseUrl = Deno.env.get("SUPABASE_URL");
+            const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+            
+            if (supabaseUrl && supabaseAnonKey) {
+                const openRouterResponse = await fetch(`${supabaseUrl}/functions/v1/openrouter-call`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${supabaseAnonKey}`,
+                    },
+                    body: JSON.stringify({ input: inputText, type: "analyze_comments" }),
+                });
+
+                if (openRouterResponse.ok) {
+                    const data = await openRouterResponse.json();
+                    if (data && data.prompt) {
+                        prompt = data.prompt;
+                        console.log("Generated prompt:", prompt);
+                    }
+                } else {
+                    console.error("Failed to call openrouter-call", await openRouterResponse.text());
+                }
+            } else {
+                 console.warn("Missing SUPABASE_URL or SUPABASE_ANON_KEY, skipping prompt generation");
+            }
+        } catch (err) {
+            console.error("Error generating prompt:", err);
+        }
     }
 
     const normalizedUrl = toOldReddit(url);

@@ -233,6 +233,7 @@ function ResultsPage() {
 
     const location = useLocation();
     const projectId = location.state?.projectId;
+    const inputText = location.state?.inputText;
     const scrapedResults = location.state?.results || [];
     const [cachedResults, setCachedResults] = useState(scrapedResults);
     const [analysisMap, setAnalysisMap] = useState({});
@@ -348,7 +349,7 @@ function ResultsPage() {
                     'Authorization': `Bearer ${supabaseAnonKey}`,
                     'apikey': supabaseAnonKey,
                 },
-                body: JSON.stringify({ url: linkToUse })
+                body: JSON.stringify({ url: linkToUse, inputText }) 
             });
 
             if (!response.ok) {

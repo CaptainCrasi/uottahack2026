@@ -19,6 +19,8 @@ Deno.serve(async (req)=>{
     const product = typeof body?.product === 'string' ? body.product.trim() : '';
     const problem = typeof body?.problem === 'string' ? body.problem.trim() : '';
     const input = typeof body?.input === 'string' ? body.input.trim() : '';
+    const type = typeof body?.type === 'string' ? body.type.trim() : 'scrape'; // 'scrape' or 'analyze_comments'
+
     if (!product && !problem && !input) {
       console.error('Missing input in request body');
       throw new Error('Provide either product/problem fields or a single input string.');
@@ -29,8 +31,23 @@ Deno.serve(async (req)=>{
       throw new Error('OPENROUTER_API_KEY is not set. Configure it in Supabase Edge Function secrets.');
     }
     const context = input || `Product: ${product || 'N/A'} | Problem solved: ${problem || 'N/A'}`;
-    console.log('Building prompt for context:', context.substring(0, 80) + '...');
-    const systemPrompt = `Create a Reddit scraper instruction based on this product:
+    console.log('Building prompt for context:', context.substring(0, 80) + '...', 'Type:', type);
+    
+    let systemPrompt = '';
+    
+    if (type === 'analyze_comments') {
+        systemPrompt = `Create a comment extraction instruction based on this product/context:
+${context}
+
+Generate ONE sentence following this structure:
+Return exactly 3 items that highlight pain points. Output each as "comment_text". Only include comments where the author describes [PAIN_POINTS_RELEVANT_TO_PRODUCT] or [FRUSTRATION_RELEVANT_TO_PRODUCT].
+
+Example: Return exactly 3 items that highlight pain points. Output each as "comment_text". Only include comments where the author describes frustration with payment delays or frozen funds.
+
+Output only the sentence, no explanation.`;
+    } else {
+        // Default 'scrape' behavior
+        systemPrompt = `Create a Reddit scraper instruction based on this product:
 ${context}
 
 Generate ONE sentence following this structure:
@@ -39,6 +56,7 @@ Return exactly 5 items. Output each as {post_link}. Only include posts where the
 Example: Return exactly 5 items. Output each as {post_link}. Only include posts where the author describes a problem with Stripe/PayPal/Square such as frozen payouts, surprise reserves, or delayed settlements, especially when dealing with high-risk transactions while running an online store.
 
 Output only the sentence, no explanation.`;
+    }
     console.log('Calling OpenRouter (Gemini 2.5 Flash Lite)...');
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
