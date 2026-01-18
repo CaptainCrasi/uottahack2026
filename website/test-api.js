@@ -11,7 +11,7 @@ async function testExtraction() {
                 "X-API-Key": API_KEY,
             },
             body: JSON.stringify({
-                url: "https://old.reddit.com/r/popular/hot/",
+                url: "https://www.reddit.com/r/AskReddit/",
                 prompt: "Extract details from 10 posts on this page: title, username, upvotes, comment number. Return null for missing fields."
             }),
         });
