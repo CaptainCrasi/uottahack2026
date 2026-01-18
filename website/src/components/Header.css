@@ -95,22 +95,40 @@
     font-weight: 500;
 }
 
-/* Logout "Ghost" Button */
+/* Premium Logout Button (Ghost Style) */
 .btn-logout {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: #8e8ea0;
     /* Muted text */
-    padding: 0.4rem 0.8rem;
+    padding: 0.55rem 1rem;
     font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: color 0.2s;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .btn-logout:hover {
-    color: #ff4a4a;
-    /* Red on hover */
-    text-decoration: underline;
+    background: rgba(239, 68, 68, 0.1);
+    /* Very soft red background */
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    /* Red text/icon */
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.btn-logout svg {
+    transition: transform 0.2s;
+}
+
+.btn-logout:hover svg {
+    transform: translateX(2px);
+    /* Subtle icon animation */
 }
 
 /* General Buttons */

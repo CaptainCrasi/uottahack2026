@@ -70,11 +70,10 @@ function App() {
 
   const handleSend = async (text) => {
     if (!user) {
-      setModalMode('signup');
-      setIsModalOpen(true);
+      handleSignupClick();
       return;
     }
-    
+
     // Navigate to loading page with the input text
     navigate('/loading', { state: { inputText: text } });
   };
@@ -103,7 +102,7 @@ function App() {
 
         <div className="by-line">
           <span style={{ color: '#048d7b', marginRight: '8px', fontSize: '1rem', fontWeight: 500 }}>by</span>
-          <img src={textLogo} alt="MarketSnipe" style={{ height: '24px', verticalAlign: 'middle', filter: 'brightness(0.9)' }} />
+          <img src={textLogo} alt="MarketSnipe" className="marketsnipe-logo" />
         </div>
 
         <div className="input-centering-container">
